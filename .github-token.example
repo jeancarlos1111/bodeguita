@@ -1,0 +1,3 @@
+# Crea un archivo .github-token en la raíz del proyecto
+# Pega aquí tu Personal Access Token de GitHub
+# El archivo .github-token ya está en .gitignore y no se subirá al repositorio

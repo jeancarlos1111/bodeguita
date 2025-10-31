@@ -1,0 +1,13 @@
+{
+  "params": {
+    "skipTrim": false,
+    "padding": [
+      0,
+      0
+    ],
+    "include": ["all"],
+    "icon": "icon.png",
+    "splashscreenColor": "FFF"
+  },
+  "assets": []
+}

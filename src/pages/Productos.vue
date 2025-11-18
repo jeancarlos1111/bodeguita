@@ -1,8 +1,12 @@
 <template>
   <q-page class="bg-grey-3 q-pa-md" padding>
-    <div class="row q-mb-md">
-      <q-btn class="col" color="primary" icon="create" label="nuevo producto" @click="dialogoNuevoValor" />
+    <div class="row q-mb-md q-gutter-sm">
+      <q-btn class="col-12 col-sm" color="primary" icon="create" label="nuevo producto" @click="dialogoNuevoValor" />
+      <q-btn class="col-12 col-sm-auto" color="positive" icon="file_download" label="Exportar CSV" @click="exportarProductosCSV" :disable="data.length === 0" />
+      <q-btn class="col-12 col-sm-auto" color="info" icon="file_upload" label="Importar CSV" @click="triggerImportCSV" />
     </div>
+    <!-- Input file oculto para importar CSV -->
+    <input ref="fileInput" type="file" accept=".csv,text/csv" style="display: none" @change="importarProductosCSV" />
     <q-table
       title="Productos"
       :data="data"
@@ -517,6 +521,281 @@ export default {
       this.$q.loading.show();
       await productosDAO.getInstance().get().then(result => { this.data = result});
       this.$q.loading.hide();
+    },
+    exportarProductosCSV() {
+      if (this.data.length === 0) {
+        this.$q.notify({
+          position: 'top',
+          type: 'warning',
+          message: 'No hay productos para exportar'
+        });
+        return;
+      }
+
+      // Encabezados del CSV
+      const headers = ['nombre', 'valor', 'costo', 'cantidad', 'porcentaje_ganancia', 'porcentaje_iva'];
+      const headersLabels = ['Nombre', 'Valor Base (USD)', 'Costo (USD)', 'Cantidad', 'Ganancia (%)', 'IVA (%)'];
+
+      // Crear contenido CSV
+      let csvContent = headersLabels.join(',') + '\n';
+
+      this.data.forEach(producto => {
+        const row = [
+          `"${(producto.nombre || '').replace(/"/g, '""')}"`, // Escapar comillas
+          producto.valor || 0,
+          producto.costo || 0,
+          producto.cantidad || 0,
+          producto.porcentaje_ganancia || 0,
+          producto.porcentaje_iva || 0
+        ];
+        csvContent += row.join(',') + '\n';
+      });
+
+      // Crear blob y descargar (compatible con móviles)
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' }); // BOM para Excel
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+
+      link.setAttribute('href', url);
+      link.setAttribute('download', `productos_${date.formatDate(Date.now(), 'YYYY-MM-DD_HH-mm-ss')}.csv`);
+      link.style.visibility = 'hidden';
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Liberar URL después de un tiempo
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+
+      this.$q.notify({
+        position: 'top',
+        type: 'positive',
+        message: `Se exportaron ${this.data.length} producto(s) correctamente`
+      });
+    },
+    triggerImportCSV() {
+      // Disparar el input file oculto
+      this.$refs.fileInput.click();
+    },
+    async importarProductosCSV(event) {
+      const file = event.target.files[0];
+      if (!file) {
+        return;
+      }
+
+      // Validar extensión
+      if (!file.name.toLowerCase().endsWith('.csv')) {
+        this.$q.notify({
+          position: 'top',
+          type: 'negative',
+          message: 'El archivo debe ser un CSV (.csv)'
+        });
+        event.target.value = ''; // Limpiar input
+        return;
+      }
+
+      this.$q.loading.show({
+        message: 'Importando productos...'
+      });
+
+      try {
+        const text = await this.readFileAsText(file);
+        const productos = this.parseCSV(text);
+
+        if (productos.length === 0) {
+          this.$q.loading.hide();
+          this.$q.notify({
+            position: 'top',
+            type: 'warning',
+            message: 'El archivo CSV está vacío o no tiene el formato correcto'
+          });
+          event.target.value = '';
+          return;
+        }
+
+        // Validar y guardar productos
+        let exitosos = 0;
+        let errores = 0;
+        const erroresDetalle = [];
+
+        for (const producto of productos) {
+          try {
+            // Validar campos requeridos
+            if (!producto.nombre || producto.nombre.trim() === '') {
+              errores++;
+              erroresDetalle.push(`Producto sin nombre en línea ${producto._linea || 'desconocida'}`);
+              continue;
+            }
+
+            // Preparar producto para guardar
+            const productoToSave = {
+              nombre: producto.nombre.trim().toUpperCase(),
+              valor: parseFloat(producto.valor || 0),
+              costo: parseFloat(producto.costo || 0),
+              cantidad: parseFloat(producto.cantidad || 0),
+              porcentaje_ganancia: parseFloat(producto.porcentaje_ganancia || 0),
+              porcentaje_iva: parseFloat(producto.porcentaje_iva || 0),
+              create_at: Date.now()
+            };
+
+            // Verificar si el producto ya existe
+            const existe = await productosDAO.getInstance().getNombre(productoToSave.nombre);
+            if (existe) {
+              // Actualizar producto existente
+              await productosDAO.getInstance().update(existe.id, productoToSave);
+            } else {
+              // Crear nuevo producto
+              await productosDAO.getInstance().save(productoToSave);
+            }
+            exitosos++;
+          } catch (error) {
+            errores++;
+            erroresDetalle.push(`Error en "${producto.nombre || 'sin nombre'}": ${error.message}`);
+            console.error('Error al importar producto:', error);
+          }
+        }
+
+        this.$q.loading.hide();
+
+        // Recargar lista
+        await this.get();
+
+        // Mostrar resultado
+        if (errores === 0) {
+          this.$q.notify({
+            position: 'top',
+            type: 'positive',
+            message: `Se importaron ${exitosos} producto(s) correctamente`,
+            timeout: 3000
+          });
+        } else {
+          this.$q.notify({
+            position: 'top',
+            type: 'warning',
+            message: `Se importaron ${exitosos} producto(s). ${errores} error(es).`,
+            timeout: 5000,
+            actions: [
+              {
+                label: 'Ver detalles',
+                handler: () => {
+                  this.$q.dialog({
+                    title: 'Errores de importación',
+                    message: erroresDetalle.join('\n'),
+                    html: true
+                  });
+                }
+              }
+            ]
+          });
+        }
+      } catch (error) {
+        this.$q.loading.hide();
+        this.$q.notify({
+          position: 'top',
+          type: 'negative',
+          message: `Error al leer el archivo: ${error.message}`
+        });
+        console.error('Error al importar CSV:', error);
+      }
+
+      // Limpiar input
+      event.target.value = '';
+    },
+    readFileAsText(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = (e) => reject(new Error('Error al leer el archivo'));
+        reader.readAsText(file, 'UTF-8');
+      });
+    },
+    parseCSV(text) {
+      const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+      if (lines.length < 2) {
+        return [];
+      }
+
+      // Detectar encabezados (primera línea)
+      const headerLine = lines[0].toLowerCase();
+      const headers = this.parseCSVLine(lines[0]);
+
+      // Mapear índices de columnas
+      const columnMap = {
+        nombre: -1,
+        valor: -1,
+        costo: -1,
+        cantidad: -1,
+        porcentaje_ganancia: -1,
+        porcentaje_iva: -1
+      };
+
+      headers.forEach((header, index) => {
+        const headerLower = header.toLowerCase().trim().replace(/"/g, '');
+        if (headerLower.includes('nombre')) columnMap.nombre = index;
+        else if (headerLower.includes('valor') && !headerLower.includes('venta') && !headerLower.includes('precio')) columnMap.valor = index;
+        else if (headerLower.includes('costo')) columnMap.costo = index;
+        else if (headerLower.includes('cantidad')) columnMap.cantidad = index;
+        else if (headerLower.includes('ganancia')) columnMap.porcentaje_ganancia = index;
+        else if (headerLower.includes('iva')) columnMap.porcentaje_iva = index;
+      });
+
+      // Validar que al menos el nombre esté presente
+      if (columnMap.nombre === -1) {
+        throw new Error('No se encontró la columna "Nombre" en el CSV');
+      }
+
+      // Parsear datos
+      const productos = [];
+      for (let i = 1; i < lines.length; i++) {
+        const values = this.parseCSVLine(lines[i]);
+        if (values.length === 0) continue;
+
+        const producto = {
+          _linea: i + 1,
+          nombre: columnMap.nombre >= 0 ? (values[columnMap.nombre] || '').replace(/^"|"$/g, '') : '',
+          valor: columnMap.valor >= 0 ? parseFloat(values[columnMap.valor] || 0) : 0,
+          costo: columnMap.costo >= 0 ? parseFloat(values[columnMap.costo] || 0) : 0,
+          cantidad: columnMap.cantidad >= 0 ? parseFloat(values[columnMap.cantidad] || 0) : 0,
+          porcentaje_ganancia: columnMap.porcentaje_ganancia >= 0 ? parseFloat(values[columnMap.porcentaje_ganancia] || 0) : 0,
+          porcentaje_iva: columnMap.porcentaje_iva >= 0 ? parseFloat(values[columnMap.porcentaje_iva] || 0) : 0
+        };
+
+        productos.push(producto);
+      }
+
+      return productos;
+    },
+    parseCSVLine(line) {
+      const values = [];
+      let current = '';
+      let inQuotes = false;
+
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        const nextChar = line[i + 1];
+
+        if (char === '"') {
+          if (inQuotes && nextChar === '"') {
+            // Comilla escapada
+            current += '"';
+            i++; // Saltar siguiente comilla
+          } else {
+            // Inicio o fin de campo entre comillas
+            inQuotes = !inQuotes;
+          }
+        } else if (char === ',' && !inQuotes) {
+          // Fin de campo
+          values.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+
+      // Agregar último campo
+      values.push(current.trim());
+
+      return values;
     },
     save() {
       // Validar que hay valor del dólar si se ingresó en Bs

@@ -15,7 +15,7 @@
       </q-avatar>
         <q-toolbar-title>
           Bodeguita <q-badge outline align="middle" color="white">
-        v1.6.0
+        v1.7.0
       </q-badge>
         </q-toolbar-title>
 
@@ -87,7 +87,7 @@
           </q-avatar>
 
           <q-toolbar-title><span class="text-weight-bold">Acerca </span> <q-badge outline align="middle" color="teal">
-        v1.6.0
+        v1.7.0
       </q-badge></q-toolbar-title>
 
           <q-btn flat round dense icon="close" v-close-popup />

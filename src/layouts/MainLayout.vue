@@ -15,7 +15,7 @@
       </q-avatar>
         <q-toolbar-title>
           Bodeguita <q-badge outline align="middle" color="white">
-        v1.7.0
+        v1.8.0
       </q-badge>
         </q-toolbar-title>
 
@@ -53,6 +53,16 @@
               </q-item-section>
             </q-item>
 
+            <q-item to="/ventas-por-producto" exact clickable v-ripple>
+              <q-item-section avatar>
+                <q-icon name="bar_chart" />
+              </q-item-section>
+
+              <q-item-section>
+                Ventas por Producto
+              </q-item-section>
+            </q-item>
+
             <q-item to="/productos" exact clickable v-ripple>
               <q-item-section avatar>
                 <q-icon name="paid" />
@@ -87,7 +97,7 @@
           </q-avatar>
 
           <q-toolbar-title><span class="text-weight-bold">Acerca </span> <q-badge outline align="middle" color="teal">
-        v1.7.0
+        v1.8.0
       </q-badge></q-toolbar-title>
 
           <q-btn flat round dense icon="close" v-close-popup />

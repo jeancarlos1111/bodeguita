@@ -1,71 +1,130 @@
 <template>
   <q-page class="bg-grey-3 q-pa-md" padding>
     <div class="row q-mb-md q-gutter-sm">
-      <q-btn class="col-12 col-sm" color="primary" icon="create" label="nuevo producto" @click="dialogoNuevoValor" />
-      <q-btn class="col-12 col-sm-auto" color="positive" icon="file_download" label="Exportar CSV" @click="exportarProductosCSV" :disable="data.length === 0" />
-      <q-btn class="col-12 col-sm-auto" color="info" icon="file_upload" label="Importar CSV" @click="triggerImportCSV" />
+      <q-btn class="col-12 col-sm" color="primary" icon="create" label="Nuevo producto" @click="dialogoNuevoValor" />
+      <q-btn class="col-12 col-sm-auto" color="positive" icon="file_download" label="Exportar CSV"
+        @click="exportarProductosCSV" :disable="data.length === 0" />
+      <q-btn class="col-12 col-sm-auto" color="info" icon="file_upload" label="Importar CSV"
+        @click="triggerImportCSV" />
     </div>
     <!-- Input file oculto para importar CSV -->
     <input ref="fileInput" type="file" accept=".csv,text/csv" style="display: none" @change="importarProductosCSV" />
-    <q-table
-      title="Productos"
-      :data="data"
-      :columns="columns"
-      :filter="filter"
-      no-data-label="No encontré nada para ti"
-      no-results-label="El filtro no reveló ningún resultado."
-      row-key="nombre"
-    >
+    <q-table title="Productos" :data="data" :columns="columns" :filter="filter" no-data-label="No encontré nada para ti"
+      no-results-label="El filtro no reveló ningún resultado." row-key="nombre" :grid="$q.screen.lt.md"
+      card-class="bg-white rounded-card shadow-1">
       <template v-slot:top-right>
         <q-input borderless dense debounce="300" v-model="filter" placeholder="Buscar">
           <q-icon slot="append" name="search" />
         </q-input>
       </template>
-
+      <!-- Vista desktop -->
       <template v-slot:body="props">
         <q-tr :props="props">
           <q-td key="nombre" :props="props">
             {{ props.row.nombre }}
           </q-td>
           <q-td key="valor" :props="props">
-              {{ new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(props.row.valor) }}
+            {{ new Intl.NumberFormat("es-VE", {
+              minimumFractionDigits: 2, maximumFractionDigits: 2
+            }).format(props.row.valor) }}
           </q-td>
           <q-td key="porcentaje_ganancia" :props="props">
-              {{ (props.row.porcentaje_ganancia || 0).toFixed(2) }}%
+            {{ (props.row.porcentaje_ganancia || 0).toFixed(2) }}%
           </q-td>
           <q-td key="porcentaje_iva" :props="props">
-              {{ (props.row.porcentaje_iva || 0).toFixed(2) }}%
+            {{ (props.row.porcentaje_iva || 0).toFixed(2) }}%
           </q-td>
           <q-td key="precio_venta" :props="props">
-              <div>
-                <div class="text-weight-bold">
-                  {{ new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(calcularPrecioVenta(props.row.valor, props.row.porcentaje_ganancia, props.row.porcentaje_iva)) }}
-                </div>
-                <div class="text-caption text-grey-7" v-if="props.row.porcentaje_iva">
-                  Sin IVA: {{ new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(calcularPrecioSinIva(props.row.valor, props.row.porcentaje_ganancia)) }}
-                  | IVA: {{ new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(calcularIva(calcularPrecioSinIva(props.row.valor, props.row.porcentaje_ganancia), props.row.porcentaje_iva)) }}
-                </div>
+            <div>
+              <div class="text-weight-bold">
+                {{ new Intl.NumberFormat("es-VE", {
+                  minimumFractionDigits: 2, maximumFractionDigits: 2
+                }).format(calcularPrecioVenta(props.row.valor, props.row.porcentaje_ganancia, props.row.porcentaje_iva))
+                }}
               </div>
+              <div class="text-caption text-grey-7" v-if="props.row.porcentaje_iva">
+                Sin IVA: {{ new Intl.NumberFormat("es-VE", {
+                  minimumFractionDigits: 2, maximumFractionDigits: 2
+                }).format(calcularPrecioSinIva(props.row.valor, props.row.porcentaje_ganancia)) }}
+                | IVA: {{ new Intl.NumberFormat("es-VE", {
+                  minimumFractionDigits: 2, maximumFractionDigits: 2
+                }).format(calcularIva(calcularPrecioSinIva(props.row.valor, props.row.porcentaje_ganancia),
+                  props.row.porcentaje_iva)) }}
+              </div>
+            </div>
           </q-td>
           <q-td key="ganancia_unitaria" :props="props">
-              <span class="text-positive text-weight-bold">
-                {{ new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(calcularGananciaUnitaria(props.row)) }}
-              </span>
+            <span class="text-positive text-weight-bold">
+              {{ new Intl.NumberFormat("es-VE", {
+                minimumFractionDigits: 2, maximumFractionDigits: 2
+              }).format(calcularGananciaUnitaria(props.row)) }}
+            </span>
           </q-td>
           <q-td key="cantidad" :props="props">
-              {{ props.row.cantidad }}
+            {{ props.row.cantidad }}
           </q-td>
           <q-td key="create_at" :props="props">
-              {{ hoyFecha(props.row.create_at) }}
+            {{ hoyFecha(props.row.create_at) }}
           </q-td>
           <q-td key="id" :props="props">
-              <q-btn-group>
-                <q-btn flat round color="info" icon="add" @click="agregarCantidad(props.row)" />
-          <q-btn flat round color="warning" icon="edit" @click="editarProducto(props.row)" />
-          <q-btn flat round color="negative" icon="delete" @click.stop="deleteR(props.row.id)" />
-        </q-btn-group>
+            <q-btn-group flat>
+              <q-btn flat round color="info" icon="add_circle" @click="agregarCantidad(props.row)" />
+              <q-btn flat round color="warning" icon="edit" @click="editarProducto(props.row)" />
+              <q-btn flat round color="negative" icon="delete" @click.stop="deleteR(props.row.id)" />
+            </q-btn-group>
           </q-td>
         </q-tr>
+      </template>
+
+      <!-- Vista mobile -->
+      <template v-slot:item="props">
+        <div class="q-pa-xs col-xs-12 col-sm-6 col-md-4">
+          <q-card class="rounded-card shadow-1">
+            <q-card-section class="row full-width justify-between items-center">
+              <div class="col-6">
+                <div class="text-h6">{{ props.row.nombre }}</div>
+              </div>
+              <div class="col-6 text-right">
+                <q-btn-group flat>
+                  <q-btn flat round dense color="info" icon="add_circle" @click="agregarCantidad(props.row)" />
+                  <q-btn flat round dense color="warning" icon="edit" @click="editarProducto(props.row)" />
+                  <q-btn flat round dense color="negative" icon="delete" @click.stop="deleteR(props.row.id)" />
+                </q-btn-group>
+              </div>
+            </q-card-section>
+            <q-separator />
+            <q-list dense>
+              <q-item>
+                <q-item-section>
+                  <q-item-label caption>Valor Base</q-item-label>
+                  <q-item-label>{{ new Intl.NumberFormat("es-VE", {
+                    minimumFractionDigits: 2, maximumFractionDigits: 2
+                  }).format(props.row.valor) }}</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <q-item-label caption>Cantidad</q-item-label>
+                  <q-item-label class="text-weight-bold">{{ props.row.cantidad }}</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item>
+                <q-item-section class="q-pb-xs">
+                  <q-item-label caption>Precio Venta</q-item-label>
+                  <q-item-label class="text-primary text-weight-bold">{{ new Intl.NumberFormat("es-VE", {
+                    minimumFractionDigits: 2, maximumFractionDigits: 2
+                  }).format(calcularPrecioVenta(props.row.valor,
+                    props.row.porcentaje_ganancia, props.row.porcentaje_iva)) }}</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <q-item-label caption>Ganancia</q-item-label>
+                  <q-item-label class="text-positive">{{ new Intl.NumberFormat("es-VE", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  }).format(calcularGananciaUnitaria(props.row)) }}</q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-card>
+        </div>
       </template>
 
 
@@ -89,84 +148,50 @@
 
           <q-toolbar-title><span class="text-weight-bold">Nuevo Producto</span></q-toolbar-title>
 
-          <q-btn flat round dense icon="close" @click="cerrar"  />
+          <q-btn flat round dense icon="close" @click="cerrar" />
         </q-toolbar>
 
         <q-card-section>
           <div class="q-gutter-md">
             <q-input v-model="form.nombre" label="Nombre" />
-            <q-toggle
-              v-model="ingresarEnBs"
+            <q-toggle v-model="ingresarEnBs"
               :label="`Ingresar valores en Bolívares (Bs)${valor_dolar ? ' - Dólar: Bs ' + new Intl.NumberFormat('es-VE').format(valor_dolar) : ' - Sin valor del dólar'}`"
-              color="primary"
-              :disable="!valor_dolar"
-              @input="toggleMoneda"
-            />
-            <q-input
-              v-if="!ingresarEnBs"
-              v-model.number="form.valor"
-              type="number"
-              mask="#.##"
-              fill-mask="0"
-              reverse-fill-mask
-              input-class="text-right"
-              label="Valor Base (USD)"
-              hint="Precio base antes de aplicar ganancia"
-            />
-            <q-input
-              v-else
-              v-model.number="form.valor_bs"
-              type="number"
-              mask="#.##"
-              fill-mask="0"
-              reverse-fill-mask
-              input-class="text-right"
-              label="Valor Base (Bs)"
-              hint="Precio base antes de aplicar ganancia. Se convertirá automáticamente a USD"
-            >
+              color="primary" :disable="!valor_dolar" @input="toggleMoneda" />
+            <q-input v-if="!ingresarEnBs" v-model.number="form.valor" type="number" mask="#.##" fill-mask="0"
+              reverse-fill-mask input-class="text-right" label="Valor Base (USD)"
+              hint="Precio base antes de aplicar ganancia" />
+            <q-input v-else v-model.number="form.valor_bs" type="number" mask="#.##" fill-mask="0" reverse-fill-mask
+              input-class="text-right" label="Valor Base (Bs)"
+              hint="Precio base antes de aplicar ganancia. Se convertirá automáticamente a USD">
               <template v-slot:append v-if="form.valor_bs && valor_dolar">
                 <q-chip dense color="primary" text-color="white">
                   ${{ (form.valor_bs / valor_dolar).toFixed(2) }}
                 </q-chip>
               </template>
             </q-input>
-            <q-input
-              v-if="!ingresarEnBs"
-              v-model.number="form.costo"
-              type="number"
-              mask="#.##"
-              fill-mask="0"
-              reverse-fill-mask
-              input-class="text-right"
-              label="Costo (USD)"
-            />
-            <q-input
-              v-else
-              v-model.number="form.costo_bs"
-              type="number"
-              mask="#.##"
-              fill-mask="0"
-              reverse-fill-mask
-              input-class="text-right"
-              label="Costo (Bs)"
-              hint="Se convertirá automáticamente a USD"
-            >
+            <q-input v-if="!ingresarEnBs" v-model.number="form.costo" type="number" mask="#.##" fill-mask="0"
+              reverse-fill-mask input-class="text-right" label="Costo (USD)" />
+            <q-input v-else v-model.number="form.costo_bs" type="number" mask="#.##" fill-mask="0" reverse-fill-mask
+              input-class="text-right" label="Costo (Bs)" hint="Se convertirá automáticamente a USD">
               <template v-slot:append v-if="form.costo_bs && valor_dolar">
                 <q-chip dense color="primary" text-color="white">
                   ${{ (form.costo_bs / valor_dolar).toFixed(2) }}
                 </q-chip>
               </template>
             </q-input>
-            <q-input v-model.number="form.porcentaje_ganancia" type="number" mask="#.##" fill-mask="0" reverse-fill-mask input-class="text-right" label="Porcentaje de Ganancia (%)" />
-            <q-input v-model.number="form.porcentaje_iva" type="number" mask="#.##" fill-mask="0" reverse-fill-mask input-class="text-right" label="IVA (%)" hint="Impuesto que se sumará al precio de venta" />
-            <q-input v-model.number="form.cantidad" type="number" mask="#.##" fill-mask="0" reverse-fill-mask input-class="text-right" label="Cantidad" />
+            <q-input v-model.number="form.porcentaje_ganancia" type="number" mask="#.##" fill-mask="0" reverse-fill-mask
+              input-class="text-right" label="Porcentaje de Ganancia (%)" />
+            <q-input v-model.number="form.porcentaje_iva" type="number" mask="#.##" fill-mask="0" reverse-fill-mask
+              input-class="text-right" label="IVA (%)" hint="Impuesto que se sumará al precio de venta" />
+            <q-input v-model.number="form.cantidad" type="number" mask="#.##" fill-mask="0" reverse-fill-mask
+              input-class="text-right" label="Cantidad" />
             <input type="hidden" v-model="form.create_at">
           </div>
         </q-card-section>
         <q-separator />
 
         <q-card-actions align="right">
-          <q-btn flat color="primary" label="Guardar" @click="save" />
+          <q-btn color="primary" label="Guardar" @click="save" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -180,84 +205,51 @@
 
           <q-toolbar-title><span class="text-weight-bold">Editar Producto</span></q-toolbar-title>
 
-          <q-btn flat round dense icon="close" @click="cerrarEditar"  />
+          <q-btn flat round dense icon="close" @click="cerrarEditar" />
         </q-toolbar>
 
         <q-card-section>
           <div class="q-gutter-md">
             <q-input v-model="form_editar.nombre" label="Nombre" />
-            <q-toggle
-              v-model="ingresarEnBsEditar"
+            <q-toggle v-model="ingresarEnBsEditar"
               :label="`Ingresar valores en Bolívares (Bs)${valor_dolar ? ' - Dólar: Bs ' + new Intl.NumberFormat('es-VE').format(valor_dolar) : ' - Sin valor del dólar'}`"
-              color="primary"
-              :disable="!valor_dolar"
-              @input="toggleMonedaEditar"
-            />
-            <q-input
-              v-if="!ingresarEnBsEditar"
-              v-model.number="form_editar.valor"
-              type="number"
-              mask="#.##"
-              fill-mask="0"
-              reverse-fill-mask
-              input-class="text-right"
-              label="Valor Base (USD)"
-              hint="Precio base antes de aplicar ganancia"
-            />
-            <q-input
-              v-else
-              v-model.number="form_editar.valor_bs"
-              type="number"
-              mask="#.##"
-              fill-mask="0"
-              reverse-fill-mask
-              input-class="text-right"
-              label="Valor Base (Bs)"
-              hint="Precio base antes de aplicar ganancia. Se convertirá automáticamente a USD"
-            >
+              color="primary" :disable="!valor_dolar" @input="toggleMonedaEditar" />
+            <q-input v-if="!ingresarEnBsEditar" v-model.number="form_editar.valor" type="number" mask="#.##"
+              fill-mask="0" reverse-fill-mask input-class="text-right" label="Valor Base (USD)"
+              hint="Precio base antes de aplicar ganancia" />
+            <q-input v-else v-model.number="form_editar.valor_bs" type="number" mask="#.##" fill-mask="0"
+              reverse-fill-mask input-class="text-right" label="Valor Base (Bs)"
+              hint="Precio base antes de aplicar ganancia. Se convertirá automáticamente a USD">
               <template v-slot:append v-if="form_editar.valor_bs && valor_dolar">
                 <q-chip dense color="primary" text-color="white">
                   ${{ (form_editar.valor_bs / valor_dolar).toFixed(2) }}
                 </q-chip>
               </template>
             </q-input>
-            <q-input
-              v-if="!ingresarEnBsEditar"
-              v-model.number="form_editar.costo"
-              type="number"
-              mask="#.##"
-              fill-mask="0"
-              reverse-fill-mask
-              input-class="text-right"
-              label="Costo (USD)"
-            />
-            <q-input
-              v-else
-              v-model.number="form_editar.costo_bs"
-              type="number"
-              mask="#.##"
-              fill-mask="0"
-              reverse-fill-mask
-              input-class="text-right"
-              label="Costo (Bs)"
-              hint="Se convertirá automáticamente a USD"
-            >
+            <q-input v-if="!ingresarEnBsEditar" v-model.number="form_editar.costo" type="number" mask="#.##"
+              fill-mask="0" reverse-fill-mask input-class="text-right" label="Costo (USD)" />
+            <q-input v-else v-model.number="form_editar.costo_bs" type="number" mask="#.##" fill-mask="0"
+              reverse-fill-mask input-class="text-right" label="Costo (Bs)" hint="Se convertirá automáticamente a USD">
               <template v-slot:append v-if="form_editar.costo_bs && valor_dolar">
                 <q-chip dense color="primary" text-color="white">
                   ${{ (form_editar.costo_bs / valor_dolar).toFixed(2) }}
                 </q-chip>
               </template>
             </q-input>
-            <q-input v-model.number="form_editar.porcentaje_ganancia" type="number" mask="#.##" fill-mask="0" reverse-fill-mask input-class="text-right" label="Porcentaje de Ganancia (%)" />
-            <q-input v-model.number="form_editar.porcentaje_iva" type="number" mask="#.##" fill-mask="0" reverse-fill-mask input-class="text-right" label="IVA (%)" hint="Impuesto que se sumará al precio de venta" />
-            <q-input v-model.number="form_editar.cantidad" type="number" mask="#.##" fill-mask="0" reverse-fill-mask input-class="text-right" label="Cantidad" />
+            <q-input v-model.number="form_editar.porcentaje_ganancia" type="number" mask="#.##" fill-mask="0"
+              reverse-fill-mask input-class="text-right" label="Porcentaje de Ganancia (%)" />
+            <q-input v-model.number="form_editar.porcentaje_iva" type="number" mask="#.##" fill-mask="0"
+              reverse-fill-mask input-class="text-right" label="IVA (%)"
+              hint="Impuesto que se sumará al precio de venta" />
+            <q-input v-model.number="form_editar.cantidad" type="number" mask="#.##" fill-mask="0" reverse-fill-mask
+              input-class="text-right" label="Cantidad" />
             <input type="hidden" v-model="form_editar.create_at">
           </div>
         </q-card-section>
         <q-separator />
 
         <q-card-actions align="right">
-          <q-btn flat color="primary" label="Guardar" @click="actualizarProducto(form_editar.id)" />
+          <q-btn color="primary" label="Guardar" @click="actualizarProducto(form_editar.id)" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -271,20 +263,22 @@
 
           <q-toolbar-title><span class="text-weight-bold">{{ form_cantidad.nombre }}</span></q-toolbar-title>
 
-          <q-btn flat round dense icon="close" @click="cerrarCantidad"  />
+          <q-btn flat round dense icon="close" @click="cerrarCantidad" />
         </q-toolbar>
 
         <q-card-section>
           <div class="q-gutter-md">
-            <q-input v-model.number="form_cantidad.cantidad" type="number" mask="#.##" fill-mask="0" reverse-fill-mask input-class="text-right" label="Cantidad Actual" readonly />
-            <q-input v-model.number="cantidad_agregar" type="number" mask="#.##" fill-mask="0" reverse-fill-mask input-class="text-right" label="Cantidad a agregar"  />
+            <q-input v-model.number="form_cantidad.cantidad" type="number" mask="#.##" fill-mask="0" reverse-fill-mask
+              input-class="text-right" label="Cantidad Actual" readonly />
+            <q-input v-model.number="cantidad_agregar" type="number" mask="#.##" fill-mask="0" reverse-fill-mask
+              input-class="text-right" label="Cantidad a agregar" />
             <input type="hidden" v-model="form_cantidad.create_at">
           </div>
         </q-card-section>
         <q-separator />
 
         <q-card-actions align="right">
-          <q-btn flat color="primary" label="Guardar" @click="actualizarCantidad(form_cantidad.id)" />
+          <q-btn color="primary" label="Guardar" @click="actualizarCantidad(form_cantidad.id)" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -292,13 +286,13 @@
 </template>
 
 <script>
-  import { date } from 'quasar';
-  import { productosDAO } from '../db/productosDAO';
-  import { valor_dolarDAO } from '../db/valor_dolarDAO';
-  import { Productos } from '../models/Productos';
+import { date } from 'quasar';
+import { productosDAO } from '../db/productosDAO';
+import { valor_dolarDAO } from '../db/valor_dolarDAO';
+import { Productos } from '../models/Productos';
 export default {
   name: 'Productos',
-  data () {
+  data() {
     return {
       form: new Productos(),
       form_editar: {},
@@ -314,7 +308,7 @@ export default {
       valor_dolar: null,
 
       columns: [
-      {
+        {
           name: 'nombre',
           required: true,
           label: 'Nombre',
@@ -328,7 +322,7 @@ export default {
           label: 'Valor Base',
           align: 'center',
           field: row => row.valor,
-          format: val => `${ new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) }`,
+          format: val => `${new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val)}`,
           sortable: true
         },
         {
@@ -362,7 +356,7 @@ export default {
             const montoIva = precioSinIva * (iva / 100);
             return precioSinIva + montoIva;
           },
-          format: val => `${ new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) }`,
+          format: val => `${new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val)}`,
           sortable: true
         },
         {
@@ -380,7 +374,7 @@ export default {
             const costo = row.costo || 0;
             return precioVenta - costo;
           },
-          format: val => `${ new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) }`,
+          format: val => `${new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val)}`,
           sortable: true
         },
         {
@@ -389,7 +383,7 @@ export default {
           label: 'Cantidad',
           align: 'center',
           field: row => row.cantidad,
-          format: val => `${ new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) }`,
+          format: val => `${new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val)}`,
           sortable: true
         },
         { name: 'create_at', align: 'center', label: 'Fecha', field: 'create_at', sortable: true, format: val => `${this.hoyFecha(val)}` },
@@ -459,7 +453,7 @@ export default {
       this.ingresarEnBs = false;
       this.m_nuevo_producto = false;
     },
-    cerrarEditar(){
+    cerrarEditar() {
       this.form_editar = {};
       this.ingresarEnBsEditar = false;
       this.m_editar_producto = false;
@@ -512,14 +506,14 @@ export default {
         }
       }
     },
-    cerrarCantidad(){
+    cerrarCantidad() {
       this.form_cantidad = {};
       this.m_cantidad_producto = false;
       this.cantidad_agregar = null;
     },
     async get() {
       this.$q.loading.show();
-      await productosDAO.getInstance().get().then(result => { this.data = result});
+      await productosDAO.getInstance().get().then(result => { this.data = result });
       this.$q.loading.hide();
     },
     exportarProductosCSV() {
@@ -810,41 +804,50 @@ export default {
         return;
       }
 
+      if (this.form.nombre.trim() === '') {
+        this.$q.notify({
+          position: 'top',
+          type: 'negative',
+          message: 'Debe ingresar el nombre del producto'
+        });
+        return;
+      }
+
       this.$q.loading.show();
-       this.form.create_at = this.fechaCreacion;
+      this.form.create_at = this.fechaCreacion;
 
-       // Si se ingresó en Bs, convertir a USD
-       if (this.ingresarEnBs && this.valor_dolar) {
-         if (this.form.valor_bs) {
-           this.form.valor = parseFloat((parseFloat(this.form.valor_bs) / parseFloat(this.valor_dolar)).toFixed(2));
-         } else {
-           this.$q.notify({
-             position: 'top',
-             type: 'warning',
-             message: 'Debe ingresar el valor del producto'
-           });
-           this.$q.loading.hide();
-           return;
-         }
-         if (this.form.costo_bs) {
-           this.form.costo = parseFloat((parseFloat(this.form.costo_bs) / parseFloat(this.valor_dolar)).toFixed(2));
-         } else {
-           this.form.costo = 0;
-         }
-       } else {
-         this.form.valor = parseFloat(parseFloat(this.form.valor).toFixed(2));
-         this.form.costo = parseFloat(parseFloat(this.form.costo || 0).toFixed(2));
-       }
+      // Si se ingresó en Bs, convertir a USD
+      if (this.ingresarEnBs && this.valor_dolar) {
+        if (this.form.valor_bs) {
+          this.form.valor = parseFloat((parseFloat(this.form.valor_bs) / parseFloat(this.valor_dolar)).toFixed(2));
+        } else {
+          this.$q.notify({
+            position: 'top',
+            type: 'warning',
+            message: 'Debe ingresar el valor del producto'
+          });
+          this.$q.loading.hide();
+          return;
+        }
+        if (this.form.costo_bs) {
+          this.form.costo = parseFloat((parseFloat(this.form.costo_bs) / parseFloat(this.valor_dolar)).toFixed(2));
+        } else {
+          this.form.costo = 0;
+        }
+      } else {
+        this.form.valor = parseFloat(parseFloat(this.form.valor).toFixed(2));
+        this.form.costo = parseFloat(parseFloat(this.form.costo || 0).toFixed(2));
+      }
 
-       this.form.porcentaje_ganancia = parseFloat(parseFloat(this.form.porcentaje_ganancia || 0).toFixed(2));
-       this.form.porcentaje_iva = parseFloat(parseFloat(this.form.porcentaje_iva || 0).toFixed(2));
-       this.form.cantidad = parseFloat(parseFloat(this.form.cantidad).toFixed(2));
-       this.form.nombre = this.form.nombre.toUpperCase();
+      this.form.porcentaje_ganancia = parseFloat(parseFloat(this.form.porcentaje_ganancia || 0).toFixed(2));
+      this.form.porcentaje_iva = parseFloat(parseFloat(this.form.porcentaje_iva || 0).toFixed(2));
+      this.form.cantidad = parseFloat(parseFloat(this.form.cantidad).toFixed(2));
+      this.form.nombre = this.form.nombre.toUpperCase();
 
-       // Eliminar campos temporales antes de guardar
-       const formToSave = { ...this.form };
-       delete formToSave.valor_bs;
-       delete formToSave.costo_bs;
+      // Eliminar campos temporales antes de guardar
+      const formToSave = { ...this.form };
+      delete formToSave.valor_bs;
+      delete formToSave.costo_bs;
 
       productosDAO.getInstance().save(formToSave).then(() => {
         this.m_nuevo_producto = false;
@@ -856,14 +859,14 @@ export default {
           type: 'positive',
           message: `Datos guardados.`
         });
-      }).catch (function (e) {
+      }).catch(function (e) {
         console.error(`Error: ${e.stack}`);
         this.$q.notify({
           position: 'top',
-        type: 'negative',
-        message: `Error: ${e.stack}`
+          type: 'negative',
+          message: `Error: ${e.stack}`
+        });
       });
-    });
     },
     editarProducto(producto) {
       this.form_editar = { ...producto };
@@ -877,55 +880,55 @@ export default {
       this.m_editar_producto = true;
     },
     async actualizarProducto(id) {
-       // Validar que hay valor del dólar si se ingresó en Bs
-       if (this.ingresarEnBsEditar && !this.valor_dolar) {
-         this.$q.notify({
-           position: 'top',
-           type: 'negative',
-           message: 'No hay valor del dólar configurado. Por favor, configura un valor del dólar en la sección "Valor Dolar" primero.'
-         });
-         // Actualizar el valor del dólar por si acaso
-         this.getDolar();
-         return;
-       }
+      // Validar que hay valor del dólar si se ingresó en Bs
+      if (this.ingresarEnBsEditar && !this.valor_dolar) {
+        this.$q.notify({
+          position: 'top',
+          type: 'negative',
+          message: 'No hay valor del dólar configurado. Por favor, configura un valor del dólar en la sección "Valor Dolar" primero.'
+        });
+        // Actualizar el valor del dólar por si acaso
+        this.getDolar();
+        return;
+      }
 
-       this.$q.loading.show();
-       this.form_editar.create_at = this.fechaCreacion;
+      this.$q.loading.show();
+      this.form_editar.create_at = this.fechaCreacion;
 
-       // Si se ingresó en Bs, convertir a USD
-       if (this.ingresarEnBsEditar && this.valor_dolar) {
-         if (this.form_editar.valor_bs) {
-           this.form_editar.valor = parseFloat((parseFloat(this.form_editar.valor_bs) / parseFloat(this.valor_dolar)).toFixed(2));
-         } else {
-           this.$q.notify({
-             position: 'top',
-             type: 'warning',
-             message: 'Debe ingresar el valor del producto'
-           });
-           this.$q.loading.hide();
-           return;
-         }
-         if (this.form_editar.costo_bs) {
-           this.form_editar.costo = parseFloat((parseFloat(this.form_editar.costo_bs) / parseFloat(this.valor_dolar)).toFixed(2));
-         } else {
-           this.form_editar.costo = 0;
-         }
-       } else {
-         this.form_editar.valor = parseFloat(parseFloat(this.form_editar.valor).toFixed(2));
-         this.form_editar.costo = parseFloat(parseFloat(this.form_editar.costo || 0).toFixed(2));
-       }
+      // Si se ingresó en Bs, convertir a USD
+      if (this.ingresarEnBsEditar && this.valor_dolar) {
+        if (this.form_editar.valor_bs) {
+          this.form_editar.valor = parseFloat((parseFloat(this.form_editar.valor_bs) / parseFloat(this.valor_dolar)).toFixed(2));
+        } else {
+          this.$q.notify({
+            position: 'top',
+            type: 'warning',
+            message: 'Debe ingresar el valor del producto'
+          });
+          this.$q.loading.hide();
+          return;
+        }
+        if (this.form_editar.costo_bs) {
+          this.form_editar.costo = parseFloat((parseFloat(this.form_editar.costo_bs) / parseFloat(this.valor_dolar)).toFixed(2));
+        } else {
+          this.form_editar.costo = 0;
+        }
+      } else {
+        this.form_editar.valor = parseFloat(parseFloat(this.form_editar.valor).toFixed(2));
+        this.form_editar.costo = parseFloat(parseFloat(this.form_editar.costo || 0).toFixed(2));
+      }
 
-       this.form_editar.porcentaje_ganancia = parseFloat(parseFloat(this.form_editar.porcentaje_ganancia || 0).toFixed(2));
-       this.form_editar.porcentaje_iva = parseFloat(parseFloat(this.form_editar.porcentaje_iva || 0).toFixed(2));
-       this.form_editar.cantidad = parseFloat(parseFloat(this.form_editar.cantidad).toFixed(2));
-       this.form_editar.nombre = this.form_editar.nombre.toUpperCase();
+      this.form_editar.porcentaje_ganancia = parseFloat(parseFloat(this.form_editar.porcentaje_ganancia || 0).toFixed(2));
+      this.form_editar.porcentaje_iva = parseFloat(parseFloat(this.form_editar.porcentaje_iva || 0).toFixed(2));
+      this.form_editar.cantidad = parseFloat(parseFloat(this.form_editar.cantidad).toFixed(2));
+      this.form_editar.nombre = this.form_editar.nombre.toUpperCase();
 
-       // Eliminar campos temporales antes de guardar
-       const formToSave = { ...this.form_editar };
-       delete formToSave.valor_bs;
-       delete formToSave.costo_bs;
+      // Eliminar campos temporales antes de guardar
+      const formToSave = { ...this.form_editar };
+      delete formToSave.valor_bs;
+      delete formToSave.costo_bs;
 
-       await productosDAO.getInstance().update(id, formToSave).then(() => {
+      await productosDAO.getInstance().update(id, formToSave).then(() => {
         this.form_editar = {};
         this.m_editar_producto = false;
         this.get();
@@ -935,24 +938,40 @@ export default {
           type: 'positive',
           message: `Datos actualizados.`
         });
-      }).catch (function (e) {
+      }).catch(function (e) {
         console.error(`Error: ${e.stack}`);
         this.$q.notify({
           position: 'top',
-        type: 'negative',
-        message: `Error: ${e.stack}`
+          type: 'negative',
+          message: `Error: ${e.stack}`
+        });
       });
-    });
     },
     agregarCantidad(producto) {
       this.m_cantidad_producto = true;
       this.form_cantidad = producto;
     },
     async actualizarCantidad(id) {
+      if (this.cantidad_agregar === null || this.cantidad_agregar === undefined || this.cantidad_agregar === '') {
+        this.$q.notify({
+          position: 'top',
+          type: 'negative',
+          message: 'Debe ingresar la cantidad'
+        });
+        return;
+      }
+      if (parseFloat(this.cantidad_agregar) <= 0) {
+        this.$q.notify({
+          position: 'top',
+          type: 'negative',
+          message: 'La cantidad debe ser mayor a 0'
+        });
+        return;
+      }
       this.$q.loading.show();
-       this.form_cantidad.create_at = this.fechaCreacion;
-       this.form_cantidad.cantidad = parseFloat((parseFloat(this.form_cantidad.cantidad) + parseFloat(this.cantidad_agregar)).toFixed(2));
-       await productosDAO.getInstance().update(id, this.form_cantidad).then(() => {
+      this.form_cantidad.create_at = this.fechaCreacion;
+      this.form_cantidad.cantidad = parseFloat((parseFloat(this.form_cantidad.cantidad) + parseFloat(this.cantidad_agregar)).toFixed(2));
+      await productosDAO.getInstance().update(id, this.form_cantidad).then(() => {
         this.form_cantidad = {};
         this.cantidad_agregar = null;
         this.m_cantidad_producto = false;
@@ -963,43 +982,43 @@ export default {
           type: 'positive',
           message: `Cantidad agregada.`
         });
-      }).catch (function (e) {
+      }).catch(function (e) {
         console.error(`Error: ${e.stack}`);
         this.$q.notify({
           position: 'top',
-        type: 'negative',
-        message: `Error: ${e.stack}`
-      });
-    });
-    },
-    deleteR(id) {
-      if(id){
-        this.$q.dialog({
-        title: '¿Desea borrar este registro?',
-        message: '<strong class="text-red">¡Los cambios no podrán deshacerse!</strong>',
-        html: true,
-        cancel: true,
-        persistent: true
-      }).onOk(() => {
-         this.$q.loading.show();
-      productosDAO.getInstance().delete(id).then(() => {
-        this.get();
-        this.$q.loading.hide();
-        this.$q.notify({
-          position: 'top',
-          type: 'positive',
-          message: `¡Datos eliminados!`
+          type: 'negative',
+          message: `Error: ${e.stack}`
         });
       });
-      }).onCancel(() => {
-      })
-    } else {
-      this.$q.notify({
-        position: 'top',
-        type: 'warning',
-        message: `¡Selecione un registro!`
-      });
-    }
+    },
+    deleteR(id) {
+      if (id) {
+        this.$q.dialog({
+          title: '¿Desea borrar este registro?',
+          message: '<strong class="text-red">¡Los cambios no podrán deshacerse!</strong>',
+          html: true,
+          cancel: true,
+          persistent: true
+        }).onOk(() => {
+          this.$q.loading.show();
+          productosDAO.getInstance().delete(id).then(() => {
+            this.get();
+            this.$q.loading.hide();
+            this.$q.notify({
+              position: 'top',
+              type: 'positive',
+              message: `¡Datos eliminados!`
+            });
+          });
+        }).onCancel(() => {
+        })
+      } else {
+        this.$q.notify({
+          position: 'top',
+          type: 'warning',
+          message: `¡Selecione un registro!`
+        });
+      }
     }
   }
 }

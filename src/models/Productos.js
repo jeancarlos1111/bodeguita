@@ -7,5 +7,7 @@ export class Productos {
 		this.porcentaje_ganancia = 0;
 		this.porcentaje_iva = 0;
 		this.create_at = null;
+		this.valor_bs = 0;
+		this.costo_bs = 0;
 	}
 }

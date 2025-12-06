@@ -1,198 +1,137 @@
 <template>
-  <q-page class="bg-grey-3 q-pa-md" padding>
-    <div class="row">
-      <q-input
-        class="col q-mr-sm"
-        filled
-        v-model="inicio"
-        mask="date"
-        :rules="['date']"
-      >
-        <template v-slot:append>
-          <q-icon name="event" class="cursor-pointer">
-            <q-popup-proxy
-              ref="qDateProxy"
-              transition-show="scale"
-              transition-hide="scale"
-            >
-              <q-date v-model="inicio">
-                <div class="row items-center justify-end">
-                  <q-btn v-close-popup label="Cerrar" color="primary" flat />
-                </div>
-              </q-date>
-            </q-popup-proxy>
-          </q-icon>
-        </template>
-      </q-input>
-      <q-input class="col" filled v-model="fin" mask="date" :rules="['date']">
-        <template v-slot:append>
-          <q-icon name="event" class="cursor-pointer">
-            <q-popup-proxy
-              ref="qDateProxy"
-              transition-show="scale"
-              transition-hide="scale"
-            >
-              <q-date v-model="fin" @input="getVentas">
-                <div class="row items-center justify-end">
-                  <q-btn v-close-popup label="Cerrar" color="primary" flat />
-                </div>
-              </q-date>
-            </q-popup-proxy>
-          </q-icon>
-        </template>
-      </q-input>
-    </div>
-    <div class="row">
-      <q-banner inline-actions class="col text-white bg-red">
-        Bs
-        {{
-          new Intl.NumberFormat("es-VE", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-          }).format(total)
-        }}
-        <template v-slot:action>
-          <q-btn round color="green" icon="whatsapp" v-if="total > 0" type="a" :href="url_whatsapp" target="__blank" />
-        </template>
-      </q-banner>
-    </div>
-    <q-list bordered>
-      <q-item
-        v-for="venta in ventas"
-        :key="venta.id"
-        class="q-my-sm"
-        clickable
-        v-ripple
-      >
-        <q-item-section avatar>
-          <q-avatar color="primary" text-color="white">
-            {{ venta.id }}
-          </q-avatar>
-        </q-item-section>
-
-        <q-item-section>
-          <q-item-label>{{
-            new Intl.NumberFormat("es-VE", {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2
-            }).format(venta.total)
-          }}</q-item-label>
-          <q-item-label caption lines="1">{{ venta.create_at }}</q-item-label>
-        </q-item-section>
-
-        <q-item-section side>
-          <div class="text-grey-8 q-gutter-xs">
-            <q-btn
-              size="12px"
-              flat
-              dense
-              round
-              color="primary"
-              icon="more_vert"
-              @click="modalProductos(venta.productos)"
-            />
-            <q-btn
-              flat
-              round
-              color="negative"
-              icon="delete"
-              @click="eliminarProductoLista(venta.id)"
-            >
-              <q-tooltip transition-show="rotate" transition-hide="rotate">
-                Eliminar registro selecionado
-              </q-tooltip>
-            </q-btn>
+  <q-page class="bg-grey-1 q-pa-md" padding>
+    <!-- Date Filter Section -->
+    <q-card class="rounded-card shadow-1 q-mb-md bg-white">
+      <q-card-section>
+        <div class="row q-col-gutter-sm">
+          <div class="col-12 col-sm-6">
+            <q-input filled v-model="inicio" mask="date" :rules="['date']" label="Fecha Inicio" class="rounded-borders">
+              <template v-slot:append>
+                <q-icon name="event" class="cursor-pointer" color="primary">
+                  <q-popup-proxy ref="qDateProxy" transition-show="scale" transition-hide="scale">
+                    <q-date v-model="inicio" color="primary">
+                      <div class="row items-center justify-end">
+                        <q-btn v-close-popup label="Cerrar" color="primary" flat />
+                      </div>
+                    </q-date>
+                  </q-popup-proxy>
+                </q-icon>
+              </template>
+            </q-input>
           </div>
-        </q-item-section>
-      </q-item>
-    </q-list>
+          <div class="col-12 col-sm-6">
+            <q-input filled v-model="fin" mask="date" :rules="['date']" label="Fecha Fin" class="rounded-borders">
+              <template v-slot:append>
+                <q-icon name="event" class="cursor-pointer" color="primary">
+                  <q-popup-proxy ref="qDateProxy" transition-show="scale" transition-hide="scale">
+                    <q-date v-model="fin" @input="getVentas" color="primary">
+                      <div class="row items-center justify-end">
+                        <q-btn v-close-popup label="Cerrar" color="primary" flat />
+                      </div>
+                    </q-date>
+                  </q-popup-proxy>
+                </q-icon>
+              </template>
+            </q-input>
+          </div>
+        </div>
+      </q-card-section>
+    </q-card>
 
-    <q-dialog v-model="m_produtos">
-      <q-card>
-        <q-toolbar>
-          <q-avatar square>
-            <img :src="`${$router.options.base || ''}icons/favicon-128x128.png`" />
-          </q-avatar>
+    <!-- Total Banner -->
+    <q-card class="rounded-card bg-primary text-white shadow-2 q-mb-md">
+      <q-card-section class="row items-center justify-between">
+        <div>
+          <div class="text-subtitle2 text-indigo-2">Total Ventas</div>
+          <div class="text-h5 text-indigo-2 text-weight-bold">
+            Bs {{ formatMoney(total) }}
+          </div>
+        </div>
+        <q-btn round color="white" text-color="green" icon="whatsapp" v-if="total > 0" type="a" :href="url_whatsapp"
+          target="__blank" unelevated />
+      </q-card-section>
+    </q-card>
 
-          <q-toolbar-title
-            ><span class="text-weight-bold">Productos</span></q-toolbar-title
-          >
+    <!-- Sales List -->
+    <div v-if="ventas.length > 0">
+      <div class="text-h6 q-mb-sm text-grey-8">Historial</div>
+      <div class="row q-col-gutter-sm">
+        <div v-for="venta in ventas" :key="venta.id" class="col-12 col-md-6">
+          <q-card class="rounded-card shadow-1">
+            <q-item class="q-py-md">
+              <q-item-section avatar>
+                <q-avatar color="indigo-1" text-color="primary">
+                  {{ venta.id }}
+                </q-avatar>
+              </q-item-section>
 
+              <q-item-section>
+                <q-item-label class="text-weight-bold text-dark">
+                  Bs {{ formatMoney(venta.total) }}
+                </q-item-label>
+                <q-item-label caption lines="1">
+                  <q-icon name="schedule" size="xs" /> {{ venta.create_at }}
+                </q-item-label>
+              </q-item-section>
+
+              <q-item-section side>
+                <div class="row q-gutter-xs">
+                  <q-btn round flat color="primary" icon="visibility" @click="modalProductos(venta.productos)" />
+                  <q-btn round flat color="negative" icon="delete_outline" @click="eliminarProductoLista(venta.id)" />
+                </div>
+              </q-item-section>
+            </q-item>
+          </q-card>
+        </div>
+      </div>
+    </div>
+
+    <div v-else class="text-center q-mt-xl text-grey-5">
+      <q-icon name="receipt_long" size="64px" class="q-mb-md" />
+      <div class="text-h6">Sin ventas registradas</div>
+      <div class="text-caption">Selecciona un rango de fechas</div>
+    </div>
+
+    <!-- Details Dialog -->
+    <q-dialog v-model="m_produtos" maximized transition-show="slide-up" transition-hide="slide-down">
+      <q-card class="bg-grey-1">
+        <q-toolbar class="bg-white text-primary shadow-1">
           <q-btn flat round dense icon="close" v-close-popup />
+          <q-toolbar-title class="text-weight-bold">Detalle de Venta</q-toolbar-title>
         </q-toolbar>
 
-        <q-card-section>
-          <q-markup-table>
-            <thead>
-              <tr>
-                <th class="text-left">Producto</th>
-                <th class="text-right">Cantidad</th>
-                <th class="text-right">Precio Venta Bs</th>
-                <th class="text-right">Costo Total Bs</th>
-                <th class="text-right">Ganancia Bs</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(producto, index) in productos" :key="index">
-                <td class="text-left">{{ producto.producto }}</td>
-                <td class="text-right">{{ producto.cantidad }}</td>
-                <td class="text-right">
-                  {{
-                    new Intl.NumberFormat("es-VE", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
-                    }).format(producto.valor_bs || 0)
-                  }}
-                </td>
-                <td class="text-right text-grey-7">
-                  {{
-                    new Intl.NumberFormat("es-VE", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
-                    }).format(producto.costo_total_bs || 0)
-                  }}
-                </td>
-                <td class="text-right text-positive text-weight-bold">
-                  {{
-                    new Intl.NumberFormat("es-VE", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
-                    }).format((producto.valor_bs || 0) - (producto.costo_total_bs || 0))
-                  }}
-                </td>
-              </tr>
-            </tbody>
-            <tfoot>
-              <tr>
-                <th class="text-left">TOTAL</th>
-                <th class="text-right"></th>
-                <th class="text-right">
-                  {{
-                    new Intl.NumberFormat("es-VE", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
-                    }).format(this.totalVenta)
-                  }}
-                </th>
-                <th class="text-right text-grey-7">
-                  {{
-                    new Intl.NumberFormat("es-VE", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
-                    }).format(this.totalCosto)
-                  }}
-                </th>
-                <th class="text-right text-positive text-weight-bold">
-                  {{
-                    new Intl.NumberFormat("es-VE", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
-                    }).format(this.totalGanancia)
-                  }}
-                </th>
-              </tr>
-            </tfoot>
-          </q-markup-table>
+        <q-card-section class="q-pa-md">
+          <q-list class="bg-white rounded-card shadow-1" separator>
+            <q-item v-for="(producto, index) in productos" :key="index" class="q-py-md">
+              <q-item-section>
+                <q-item-label class="text-weight-bold">{{ producto.producto }}</q-item-label>
+                <q-item-label caption>Cant: {{ producto.cantidad }}</q-item-label>
+              </q-item-section>
+
+              <q-item-section side class="text-right">
+                <q-item-label class="text-primary text-weight-bold">
+                  Bs {{ formatMoney(producto.valor_bs || 0) }}
+                </q-item-label>
+                <q-item-label caption class="text-positive text-weight-bold">
+                  Ganancia: Bs {{ formatMoney((producto.valor_bs || 0) - (producto.costo_total_bs || 0)) }}
+                </q-item-label>
+              </q-item-section>
+            </q-item>
+
+            <q-item class="bg-grey-2">
+              <q-item-section>
+                <q-item-label class="text-weight-bold">TOTAL</q-item-label>
+              </q-item-section>
+              <q-item-section side class="text-right">
+                <q-item-label class="text-h6 text-primary text-weight-bold">
+                  Bs {{ formatMoney(totalVenta) }}
+                </q-item-label>
+                <q-item-label caption class="text-positive text-weight-bold">
+                  Ganancia Total: Bs {{ formatMoney(totalGanancia) }}
+                </q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-list>
         </q-card-section>
       </q-card>
     </q-dialog>
@@ -200,11 +139,11 @@
 </template>
 
 <script>
-// import { date } from "quasar";
 import { ventasDAO } from "../db/ventasDAO";
 import { Ventas } from "../models/Ventas";
+
 export default {
-  name: "PageIndex",
+  name: "PageVentas",
   data() {
     return {
       inicio: null,
@@ -222,8 +161,7 @@ export default {
     };
   },
   mounted() {
-    /*this.getProdutos();
-    this.getDolar();*/
+    // Initial load if needed
   },
   computed: {
     totalVenta() {
@@ -239,24 +177,25 @@ export default {
     }
   },
   methods: {
+    formatMoney(amount) {
+      return new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
+    },
     calcularGanancia(producto) {
       const venta = producto.valor_bs || 0;
       const costo = producto.costo_total_bs || 0;
       return venta - costo;
     },
     async getVentas() {
-      //console.log(this.fin)
       await ventasDAO
         .getInstance()
         .get(this.inicio, this.fin)
         .then(result => (this.ventas = result));
       let sum = 0;
       for (let i = 0; i < this.ventas.length; i++) {
-        //console.log(this.ventas[i]);
         sum += this.ventas[i].total;
       }
       this.total = sum;
-      const monto_convertido = new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(this.total)
+      const monto_convertido = this.formatMoney(this.total);
       const mensaje = `El total del sus ventas es de *Bs ${monto_convertido}*`
       const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(mensaje)}`
       this.url_whatsapp = url;
@@ -265,8 +204,7 @@ export default {
       this.$q
         .dialog({
           title: "¿Desea borrar este registro?",
-          message:
-            '<strong class="text-red">¡Los cambios no podrán deshacerse!</strong>',
+          message: '<strong class="text-red">¡Los cambios no podrán deshacerse!</strong>',
           html: true,
           cancel: true,
           persistent: true
@@ -277,16 +215,7 @@ export default {
             .getInstance()
             .delete(id)
             .then(async () => {
-              await ventasDAO
-                .getInstance()
-                .get(this.inicio, this.fin)
-                .then(result => (this.ventas = result));
-              let sum = 0;
-              for (let i = 0; i < this.ventas.length; i++) {
-                //console.log(this.ventas[i]);
-                sum += this.ventas[i].total;
-              }
-              this.total = sum;
+              await this.getVentas(); // Refresh list
               this.$q.loading.hide();
               this.$q.notify({
                 position: "top",
@@ -294,32 +223,11 @@ export default {
                 message: `¡Datos eliminados!`
               });
             });
-        })
-        .onCancel(() => {});
+        });
     },
     modalProductos(productos) {
       this.m_produtos = true;
       this.productos = productos;
-    },
-    filterFn(val, update, abort) {
-      if (val.length < 2) {
-        abort();
-        return;
-      }
-
-      update(() => {
-        const needle = val.toLowerCase();
-        this.options = this.stringOptions.filter(
-          v => v.toLowerCase().indexOf(needle) > -1
-        );
-      });
-    },
-    enviarPorWhatsApp(total) {
-      // const monto_convertido = new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(venta.total)
-      // const mensaje = `El total del sus ventas es de *Bs ${monto_convertido}*`
-      // const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(mensaje)}`
-      // this.url_whatsapp = url;
-      // this.url_whatsapp.click();
     }
   }
 };

@@ -23,10 +23,10 @@
           <q-td key="nombre" :props="props">
             {{ props.row.nombre }}
           </q-td>
-          <q-td key="valor" :props="props">
+          <q-td key="costo" :props="props">
             {{ new Intl.NumberFormat("es-VE", {
               minimumFractionDigits: 2, maximumFractionDigits: 2
-            }).format(props.row.valor) }}
+            }).format(props.row.costo) }}
           </q-td>
           <q-td key="porcentaje_ganancia" :props="props">
             {{ (props.row.porcentaje_ganancia || 0).toFixed(2) }}%
@@ -39,16 +39,16 @@
               <div class="text-weight-bold">
                 {{ new Intl.NumberFormat("es-VE", {
                   minimumFractionDigits: 2, maximumFractionDigits: 2
-                }).format(calcularPrecioVenta(props.row.valor, props.row.porcentaje_ganancia, props.row.porcentaje_iva))
+                }).format(calcularPrecioVenta(props.row.costo, props.row.porcentaje_ganancia, props.row.porcentaje_iva))
                 }}
               </div>
               <div class="text-caption text-grey-7" v-if="props.row.porcentaje_iva">
                 Sin IVA: {{ new Intl.NumberFormat("es-VE", {
                   minimumFractionDigits: 2, maximumFractionDigits: 2
-                }).format(calcularPrecioSinIva(props.row.valor, props.row.porcentaje_ganancia)) }}
+                }).format(calcularPrecioSinIva(props.row.costo, props.row.porcentaje_ganancia)) }}
                 | IVA: {{ new Intl.NumberFormat("es-VE", {
                   minimumFractionDigits: 2, maximumFractionDigits: 2
-                }).format(calcularIva(calcularPrecioSinIva(props.row.valor, props.row.porcentaje_ganancia),
+                }).format(calcularIva(calcularPrecioSinIva(props.row.costo, props.row.porcentaje_ganancia),
                   props.row.porcentaje_iva)) }}
               </div>
             </div>
@@ -96,10 +96,10 @@
             <q-list dense>
               <q-item>
                 <q-item-section>
-                  <q-item-label caption>Valor Base</q-item-label>
+                  <q-item-label caption>Costo</q-item-label>
                   <q-item-label>{{ new Intl.NumberFormat("es-VE", {
                     minimumFractionDigits: 2, maximumFractionDigits: 2
-                  }).format(props.row.valor) }}</q-item-label>
+                  }).format(props.row.costo) }}</q-item-label>
                 </q-item-section>
                 <q-item-section side>
                   <q-item-label caption>Cantidad</q-item-label>
@@ -111,7 +111,7 @@
                   <q-item-label caption>Precio Venta</q-item-label>
                   <q-item-label class="text-primary text-weight-bold">{{ new Intl.NumberFormat("es-VE", {
                     minimumFractionDigits: 2, maximumFractionDigits: 2
-                  }).format(calcularPrecioVenta(props.row.valor,
+                  }).format(calcularPrecioVenta(props.row.costo,
                     props.row.porcentaje_ganancia, props.row.porcentaje_iva)) }}</q-item-label>
                 </q-item-section>
                 <q-item-section side>
@@ -157,18 +157,7 @@
             <q-toggle v-model="ingresarEnBs"
               :label="`Ingresar valores en Bolívares (Bs)${valor_dolar ? ' - Dólar: Bs ' + new Intl.NumberFormat('es-VE').format(valor_dolar) : ' - Sin valor del dólar'}`"
               color="primary" :disable="!valor_dolar" @input="toggleMoneda" />
-            <q-input v-if="!ingresarEnBs" v-model.number="form.valor" type="number" mask="#.##" fill-mask="0"
-              reverse-fill-mask input-class="text-right" label="Valor Base (USD)"
-              hint="Precio base antes de aplicar ganancia" />
-            <q-input v-else v-model.number="form.valor_bs" type="number" mask="#.##" fill-mask="0" reverse-fill-mask
-              input-class="text-right" label="Valor Base (Bs)"
-              hint="Precio base antes de aplicar ganancia. Se convertirá automáticamente a USD">
-              <template v-slot:append v-if="form.valor_bs && valor_dolar">
-                <q-chip dense color="primary" text-color="white">
-                  ${{ (form.valor_bs / valor_dolar).toFixed(2) }}
-                </q-chip>
-              </template>
-            </q-input>
+            <!-- Removed valor inputs -->
             <q-input v-if="!ingresarEnBs" v-model.number="form.costo" type="number" mask="#.##" fill-mask="0"
               reverse-fill-mask input-class="text-right" label="Costo (USD)" />
             <q-input v-else v-model.number="form.costo_bs" type="number" mask="#.##" fill-mask="0" reverse-fill-mask
@@ -214,18 +203,7 @@
             <q-toggle v-model="ingresarEnBsEditar"
               :label="`Ingresar valores en Bolívares (Bs)${valor_dolar ? ' - Dólar: Bs ' + new Intl.NumberFormat('es-VE').format(valor_dolar) : ' - Sin valor del dólar'}`"
               color="primary" :disable="!valor_dolar" @input="toggleMonedaEditar" />
-            <q-input v-if="!ingresarEnBsEditar" v-model.number="form_editar.valor" type="number" mask="#.##"
-              fill-mask="0" reverse-fill-mask input-class="text-right" label="Valor Base (USD)"
-              hint="Precio base antes de aplicar ganancia" />
-            <q-input v-else v-model.number="form_editar.valor_bs" type="number" mask="#.##" fill-mask="0"
-              reverse-fill-mask input-class="text-right" label="Valor Base (Bs)"
-              hint="Precio base antes de aplicar ganancia. Se convertirá automáticamente a USD">
-              <template v-slot:append v-if="form_editar.valor_bs && valor_dolar">
-                <q-chip dense color="primary" text-color="white">
-                  ${{ (form_editar.valor_bs / valor_dolar).toFixed(2) }}
-                </q-chip>
-              </template>
-            </q-input>
+            <!-- Removed valor inputs -->
             <q-input v-if="!ingresarEnBsEditar" v-model.number="form_editar.costo" type="number" mask="#.##"
               fill-mask="0" reverse-fill-mask input-class="text-right" label="Costo (USD)" />
             <q-input v-else v-model.number="form_editar.costo_bs" type="number" mask="#.##" fill-mask="0"
@@ -317,11 +295,11 @@ export default {
           sortable: true
         },
         {
-          name: 'valor',
+          name: 'costo',
           required: true,
-          label: 'Valor Base',
+          label: 'Costo',
           align: 'center',
-          field: row => row.valor,
+          field: row => row.costo,
           format: val => `${new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val)}`,
           sortable: true
         },
@@ -351,8 +329,8 @@ export default {
           field: row => {
             const porcentaje = row.porcentaje_ganancia || 0;
             const iva = row.porcentaje_iva || 0;
-            if (!row.valor) return 0;
-            const precioSinIva = row.valor + (row.valor * porcentaje / 100);
+            if (!row.costo) return 0;
+            const precioSinIva = row.costo + (row.costo * porcentaje / 100);
             const montoIva = precioSinIva * (iva / 100);
             return precioSinIva + montoIva;
           },
@@ -366,13 +344,8 @@ export default {
           align: 'center',
           field: row => {
             const porcentaje = row.porcentaje_ganancia || 0;
-            const iva = row.porcentaje_iva || 0;
-            if (!row.valor) return 0;
-            const precioSinIva = row.valor + (row.valor * porcentaje / 100);
-            const montoIva = precioSinIva * (iva / 100);
-            const precioVenta = precioSinIva + montoIva;
-            const costo = row.costo || 0;
-            return precioVenta - costo;
+            if (!row.costo) return 0;
+            return row.costo * (porcentaje / 100);
           },
           format: val => `${new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val)}`,
           sortable: true
@@ -398,7 +371,9 @@ export default {
     }
   },
   mounted() {
-    this.get();
+    this.get().then(() => {
+      this.migrarValorACosto();
+    });
     this.getDolar();
   },
   computed: {
@@ -417,21 +392,21 @@ export default {
       //timeStamp = date.addToDate(timeStamp, { days: 1, month: 0 })
       return date.formatDate(timeStamp, 'DD-MM-YYYY HH:mm:ss');
     },
-    calcularPrecioVenta(valor, porcentajeGanancia, porcentajeIva) {
-      if (!valor) return 0;
+    calcularPrecioVenta(costo, porcentajeGanancia, porcentajeIva) {
+      if (!costo) return 0;
       const porcentaje = porcentajeGanancia || 0;
       const iva = porcentajeIva || 0;
-      // Precio sin IVA: Valor Base + Ganancia
-      const precioSinIva = valor + (valor * porcentaje / 100);
+      // Precio sin IVA: Costo + Ganancia
+      const precioSinIva = costo + (costo * porcentaje / 100);
       // IVA sobre el precio sin IVA
       const montoIva = precioSinIva * (iva / 100);
       // Precio final con IVA
       return parseFloat((precioSinIva + montoIva).toFixed(2));
     },
-    calcularPrecioSinIva(valor, porcentajeGanancia) {
-      if (!valor) return 0;
+    calcularPrecioSinIva(costo, porcentajeGanancia) {
+      if (!costo) return 0;
       const porcentaje = porcentajeGanancia || 0;
-      return parseFloat((valor + (valor * porcentaje / 100)).toFixed(2));
+      return parseFloat((costo + (costo * porcentaje / 100)).toFixed(2));
     },
     calcularIva(precioSinIva, porcentajeIva) {
       if (!precioSinIva) return 0;
@@ -439,16 +414,15 @@ export default {
       return parseFloat((precioSinIva * (iva / 100)).toFixed(2));
     },
     calcularGananciaUnitaria(producto) {
-      const precioVenta = this.calcularPrecioVenta(producto.valor, producto.porcentaje_ganancia, producto.porcentaje_iva);
       const costo = producto.costo || 0;
-      return parseFloat((precioVenta - costo).toFixed(2));
+      const porcentaje = producto.porcentaje_ganancia || 0;
+      return parseFloat((costo * porcentaje / 100).toFixed(2));
     },
     dialogoNuevoValor() {
       this.m_nuevo_producto = true;
     },
     cerrar() {
       this.form = new Productos();
-      this.$set(this.form, 'valor_bs', null);
       this.$set(this.form, 'costo_bs', null);
       this.ingresarEnBs = false;
       this.m_nuevo_producto = false;
@@ -479,13 +453,9 @@ export default {
     toggleMoneda() {
       if (!this.ingresarEnBs) {
         // Si se desactiva, limpiar valores en Bs
-        this.form.valor_bs = null;
         this.form.costo_bs = null;
       } else {
         // Si se activa, convertir valores existentes a Bs si hay valor_dolar
-        if (this.valor_dolar && this.form.valor) {
-          this.form.valor_bs = this.form.valor * this.valor_dolar;
-        }
         if (this.valor_dolar && this.form.costo) {
           this.form.costo_bs = this.form.costo * this.valor_dolar;
         }
@@ -494,13 +464,9 @@ export default {
     toggleMonedaEditar() {
       if (!this.ingresarEnBsEditar) {
         // Si se desactiva, limpiar valores en Bs
-        this.form_editar.valor_bs = null;
         this.form_editar.costo_bs = null;
       } else {
         // Si se activa, convertir valores existentes a Bs si hay valor_dolar
-        if (this.valor_dolar && this.form_editar.valor) {
-          this.form_editar.valor_bs = this.form_editar.valor * this.valor_dolar;
-        }
         if (this.valor_dolar && this.form_editar.costo) {
           this.form_editar.costo_bs = this.form_editar.costo * this.valor_dolar;
         }
@@ -527,8 +493,8 @@ export default {
       }
 
       // Encabezados del CSV
-      const headers = ['nombre', 'valor', 'costo', 'cantidad', 'porcentaje_ganancia', 'porcentaje_iva'];
-      const headersLabels = ['Nombre', 'Valor Base (USD)', 'Costo (USD)', 'Cantidad', 'Ganancia (%)', 'IVA (%)'];
+      const headers = ['nombre', 'costo', 'cantidad', 'porcentaje_ganancia', 'porcentaje_iva'];
+      const headersLabels = ['Nombre', 'Costo (USD)', 'Cantidad', 'Ganancia (%)', 'IVA (%)'];
 
       // Crear contenido CSV
       let csvContent = headersLabels.join(',') + '\n';
@@ -536,7 +502,6 @@ export default {
       this.data.forEach(producto => {
         const row = [
           `"${(producto.nombre || '').replace(/"/g, '""')}"`, // Escapar comillas
-          producto.valor || 0,
           producto.costo || 0,
           producto.cantidad || 0,
           producto.porcentaje_ganancia || 0,
@@ -624,7 +589,6 @@ export default {
             // Preparar producto para guardar
             const productoToSave = {
               nombre: producto.nombre.trim().toUpperCase(),
-              valor: parseFloat(producto.valor || 0),
               costo: parseFloat(producto.costo || 0),
               cantidad: parseFloat(producto.cantidad || 0),
               porcentaje_ganancia: parseFloat(producto.porcentaje_ganancia || 0),
@@ -716,7 +680,6 @@ export default {
       // Mapear índices de columnas
       const columnMap = {
         nombre: -1,
-        valor: -1,
         costo: -1,
         cantidad: -1,
         porcentaje_ganancia: -1,
@@ -726,7 +689,6 @@ export default {
       headers.forEach((header, index) => {
         const headerLower = header.toLowerCase().trim().replace(/"/g, '');
         if (headerLower.includes('nombre')) columnMap.nombre = index;
-        else if (headerLower.includes('valor') && !headerLower.includes('venta') && !headerLower.includes('precio')) columnMap.valor = index;
         else if (headerLower.includes('costo')) columnMap.costo = index;
         else if (headerLower.includes('cantidad')) columnMap.cantidad = index;
         else if (headerLower.includes('ganancia')) columnMap.porcentaje_ganancia = index;
@@ -747,7 +709,6 @@ export default {
         const producto = {
           _linea: i + 1,
           nombre: columnMap.nombre >= 0 ? (values[columnMap.nombre] || '').replace(/^"|"$/g, '') : '',
-          valor: columnMap.valor >= 0 ? parseFloat(values[columnMap.valor] || 0) : 0,
           costo: columnMap.costo >= 0 ? parseFloat(values[columnMap.costo] || 0) : 0,
           cantidad: columnMap.cantidad >= 0 ? parseFloat(values[columnMap.cantidad] || 0) : 0,
           porcentaje_ganancia: columnMap.porcentaje_ganancia >= 0 ? parseFloat(values[columnMap.porcentaje_ganancia] || 0) : 0,
@@ -791,6 +752,26 @@ export default {
 
       return values;
     },
+    async migrarValorACosto() {
+      let migrados = 0;
+      for (const producto of this.data) {
+        // Logica de migración: si costo es 0 y hay valor, mover valor a costo
+        if ((!producto.costo || producto.costo === 0) && (producto.valor && producto.valor > 0)) {
+          producto.costo = producto.valor;
+          // Actualizar en DB
+          await productosDAO.getInstance().update(producto.id, { costo: producto.costo });
+          migrados++;
+        }
+      }
+      if (migrados > 0) {
+        console.log(`Se migraron ${migrados} productos de valor a costo`);
+        this.$q.notify({
+          position: 'top',
+          type: 'positive',
+          message: `Se actualizaron ${migrados} productos a la nueva estructura de costos.`
+        });
+      }
+    },
     save() {
       // Validar que hay valor del dólar si se ingresó en Bs
       if (this.ingresarEnBs && !this.valor_dolar) {
@@ -818,24 +799,12 @@ export default {
 
       // Si se ingresó en Bs, convertir a USD
       if (this.ingresarEnBs && this.valor_dolar) {
-        if (this.form.valor_bs) {
-          this.form.valor = parseFloat((parseFloat(this.form.valor_bs) / parseFloat(this.valor_dolar)).toFixed(2));
-        } else {
-          this.$q.notify({
-            position: 'top',
-            type: 'warning',
-            message: 'Debe ingresar el valor del producto'
-          });
-          this.$q.loading.hide();
-          return;
-        }
         if (this.form.costo_bs) {
           this.form.costo = parseFloat((parseFloat(this.form.costo_bs) / parseFloat(this.valor_dolar)).toFixed(2));
         } else {
           this.form.costo = 0;
         }
       } else {
-        this.form.valor = parseFloat(parseFloat(this.form.valor).toFixed(2));
         this.form.costo = parseFloat(parseFloat(this.form.costo || 0).toFixed(2));
       }
 
@@ -897,24 +866,12 @@ export default {
 
       // Si se ingresó en Bs, convertir a USD
       if (this.ingresarEnBsEditar && this.valor_dolar) {
-        if (this.form_editar.valor_bs) {
-          this.form_editar.valor = parseFloat((parseFloat(this.form_editar.valor_bs) / parseFloat(this.valor_dolar)).toFixed(2));
-        } else {
-          this.$q.notify({
-            position: 'top',
-            type: 'warning',
-            message: 'Debe ingresar el valor del producto'
-          });
-          this.$q.loading.hide();
-          return;
-        }
         if (this.form_editar.costo_bs) {
           this.form_editar.costo = parseFloat((parseFloat(this.form_editar.costo_bs) / parseFloat(this.valor_dolar)).toFixed(2));
         } else {
           this.form_editar.costo = 0;
         }
       } else {
-        this.form_editar.valor = parseFloat(parseFloat(this.form_editar.valor).toFixed(2));
         this.form_editar.costo = parseFloat(parseFloat(this.form_editar.costo || 0).toFixed(2));
       }
 

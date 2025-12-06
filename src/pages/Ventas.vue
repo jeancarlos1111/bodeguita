@@ -47,7 +47,7 @@
             Bs {{ formatMoney(total) }}
           </div>
         </div>
-        <q-btn round color="white" text-color="green" icon="whatsapp" v-if="total > 0" type="a" :href="url_whatsapp"
+        <q-btn round color="white" text-color="green" icon="share" v-if="total > 0" type="a" :href="url_whatsapp"
           target="__blank" unelevated />
       </q-card-section>
     </q-card>

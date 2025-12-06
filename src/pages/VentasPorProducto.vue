@@ -1,21 +1,10 @@
 <template>
   <q-page class="bg-grey-3 q-pa-md" padding>
     <div class="row q-mb-md">
-      <q-input
-        class="col q-mr-sm"
-        filled
-        v-model="inicio"
-        mask="date"
-        :rules="['date']"
-        label="Fecha Inicio"
-      >
+      <q-input class="col q-mr-sm" filled v-model="inicio" mask="date" :rules="['date']" label="Fecha Inicio">
         <template v-slot:append>
           <q-icon name="event" class="cursor-pointer">
-            <q-popup-proxy
-              ref="qDateProxy"
-              transition-show="scale"
-              transition-hide="scale"
-            >
+            <q-popup-proxy ref="qDateProxy" transition-show="scale" transition-hide="scale">
               <q-date v-model="inicio">
                 <div class="row items-center justify-end">
                   <q-btn v-close-popup label="Cerrar" color="primary" flat />
@@ -25,21 +14,10 @@
           </q-icon>
         </template>
       </q-input>
-      <q-input
-        class="col"
-        filled
-        v-model="fin"
-        mask="date"
-        :rules="['date']"
-        label="Fecha Fin"
-      >
+      <q-input class="col" filled v-model="fin" mask="date" :rules="['date']" label="Fecha Fin">
         <template v-slot:append>
           <q-icon name="event" class="cursor-pointer">
-            <q-popup-proxy
-              ref="qDateProxy"
-              transition-show="scale"
-              transition-hide="scale"
-            >
+            <q-popup-proxy ref="qDateProxy" transition-show="scale" transition-hide="scale">
               <q-date v-model="fin" @input="cargarDatos">
                 <div class="row items-center justify-end">
                   <q-btn v-close-popup label="Cerrar" color="primary" flat />
@@ -77,7 +55,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(item, index) in datosProductos" :key="index">
+            <tr v-for="(item, index) in productosList" :key="index">
               <td class="text-left">{{ item.producto }}</td>
               <td class="text-right">{{ item.cantidadTotal }}</td>
               <td class="text-right">
@@ -101,6 +79,7 @@
 </template>
 
 <script>
+import Vue from "vue";
 import { ventasDAO } from "../db/ventasDAO";
 import {
   Chart as ChartJS,
@@ -125,14 +104,21 @@ ChartJS.register(
   Legend
 );
 
-export default {
+/**
+ * @typedef {Object} ProductoVenta
+ * @property {string} producto
+ * @property {number} cantidadTotal
+ * @property {number} totalVentas
+ */
+
+export default Vue.extend({
   name: "VentasPorProducto",
   data() {
     return {
       inicio: null,
       fin: null,
       ventas: [],
-      datosProductos: [],
+      datosProductos: /** @type {any[]} */ ([]),
       chart: null
     };
   },
@@ -154,6 +140,12 @@ export default {
   beforeUnmount() {
     if (this.chart) {
       this.chart.destroy();
+    }
+  },
+  computed: {
+    /** @returns {any[]} */
+    productosList() {
+      return this.$data.datosProductos;
     }
   },
   methods: {
@@ -307,7 +299,7 @@ export default {
           },
           tooltips: {
             callbacks: {
-              label: function(tooltipItem, data) {
+              label: function (tooltipItem, data) {
                 const index = tooltipItem.index;
                 const cantidad = cantidades[index];
                 const total = new Intl.NumberFormat("es-VE", {
@@ -323,7 +315,7 @@ export default {
               {
                 ticks: {
                   beginAtZero: true,
-                  callback: function(value) {
+                  callback: function (value) {
                     return new Intl.NumberFormat("es-VE", {
                       minimumFractionDigits: 0,
                       maximumFractionDigits: 0
@@ -337,7 +329,7 @@ export default {
       });
     }
   }
-};
+});
 </script>
 
 <style scoped>
@@ -345,4 +337,3 @@ canvas {
   max-height: 400px;
 }
 </style>
-

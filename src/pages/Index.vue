@@ -24,7 +24,7 @@
           </div>
           <div class="col-6 col-sm-2">
             <q-btn color="primary" icon="add_shopping_cart" class="full-width full-height shadow-0 rounded-borders"
-              @click="agregarListaCompra" unelevated label="Agregar" />
+              @click="agregarListaCompra" label="Agregar" />
           </div>
         </div>
       </q-card-section>
@@ -172,8 +172,8 @@ export default {
           this.$q.loading.hide();
           const porcentaje = Number(result.porcentaje_ganancia || 0);
           const iva = Number(result.porcentaje_iva || 0);
-          // Precio sin IVA: Valor Base + Ganancia
-          const precioSinIva = Number(result.valor) * (1 + (porcentaje / 100));
+          // Precio sin IVA: Costo + Ganancia
+          const precioSinIva = Number(result.costo || 0) * (1 + (porcentaje / 100));
           // IVA sobre precio sin IVA
           const montoIva = precioSinIva * (iva / 100);
           // Precio final con IVA

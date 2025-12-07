@@ -8,6 +8,7 @@ const routes = [
       { path: '/productos', component: () => import('pages/Productos.vue') },
       { path: '/ventas', component: () => import('pages/Ventas.vue') },
       { path: '/ventas-por-producto', component: () => import('pages/VentasPorProducto.vue') },
+      { path: '/kardex', component: () => import('pages/Kardex.vue') },
       { path: '/valor_dolar', component: () => import('pages/ValorDolar.vue') }
     ]
   },

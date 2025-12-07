@@ -58,6 +58,13 @@
             <q-item-section>Productos</q-item-section>
           </q-item>
 
+          <q-item to="/kardex" exact clickable v-ripple active-class="text-primary bg-indigo-1">
+            <q-item-section avatar>
+              <q-icon name="psychology" />
+            </q-item-section>
+            <q-item-section>Kardex</q-item-section>
+          </q-item>
+
           <q-item to="/valor_dolar" exact clickable v-ripple active-class="text-primary bg-indigo-1">
             <q-item-section avatar>
               <q-icon name="attach_money" />
@@ -80,6 +87,7 @@
         <q-route-tab name="ventas-por-producto" icon="receipt_long" label="Ven. Prod." to="/ventas-por-producto"
           exact />
         <q-route-tab name="productos" icon="inventory_2" label="Prod." to="/productos" exact />
+        <q-route-tab name="kardex" icon="psychology" label="Kardex" to="/kardex" exact />
         <q-route-tab name="dolar" icon="attach_money" label="Dolar" to="/valor_dolar" exact />
       </q-tabs>
     </q-footer>

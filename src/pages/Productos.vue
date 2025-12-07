@@ -268,6 +268,8 @@ import { date } from 'quasar';
 import { productosDAO } from '../db/productosDAO';
 import { valor_dolarDAO } from '../db/valor_dolarDAO';
 import { Productos } from '../models/Productos';
+import { movimientosDAO } from '../db/movimientosDAO';
+import { Movimientos } from '../models/Movimientos';
 export default {
   name: 'Productos',
   data() {
@@ -818,7 +820,21 @@ export default {
       delete formToSave.valor_bs;
       delete formToSave.costo_bs;
 
-      productosDAO.getInstance().save(formToSave).then(() => {
+      productosDAO.getInstance().save(formToSave).then(async (id) => {
+        // Registrar Movimiento Inicial (ENTRADA)
+        try {
+          const movimiento = new Movimientos();
+          movimiento.producto_id = id;
+          movimiento.tipo = 'ENTRADA';
+          movimiento.cantidad = formToSave.cantidad;
+          movimiento.fecha = Date.now();
+          movimiento.referencia = 'Inventario Inicial';
+          movimiento.create_at = this.fechaCreacion;
+          await movimientosDAO.getInstance().save(movimiento);
+        } catch (error) {
+          console.error("Error al registrar movimiento inicial:", error);
+        }
+
         this.m_nuevo_producto = false;
         this.form = new Productos();
         this.get();
@@ -885,7 +901,34 @@ export default {
       delete formToSave.valor_bs;
       delete formToSave.costo_bs;
 
-      await productosDAO.getInstance().update(id, formToSave).then(() => {
+      // Obtener producto anterior para calcular diferencia
+      let diff = 0;
+      try {
+        const productoAnterior = await productosDAO.getInstance().getOne(id);
+        if (productoAnterior) {
+          diff = formToSave.cantidad - productoAnterior.cantidad;
+        }
+      } catch (error) {
+        console.error("Error al obtener producto anterior:", error);
+      }
+
+      await productosDAO.getInstance().update(id, formToSave).then(async () => {
+        // Registrar Movimiento de Ajuste (AJUSTE) si hubo cambio en cantidad
+        if (diff !== 0) {
+          try {
+            const movimiento = new Movimientos();
+            movimiento.producto_id = id;
+            movimiento.tipo = 'AJUSTE';
+            movimiento.cantidad = diff; // Puede ser negativo o positivo
+            movimiento.fecha = Date.now();
+            movimiento.referencia = 'Edición de Producto';
+            movimiento.create_at = this.fechaCreacion;
+            await movimientosDAO.getInstance().save(movimiento);
+          } catch (error) {
+            console.error("Error al registrar ajuste:", error);
+          }
+        }
+
         this.form_editar = {};
         this.m_editar_producto = false;
         this.get();
@@ -928,7 +971,21 @@ export default {
       this.$q.loading.show();
       this.form_cantidad.create_at = this.fechaCreacion;
       this.form_cantidad.cantidad = parseFloat((parseFloat(this.form_cantidad.cantidad) + parseFloat(this.cantidad_agregar)).toFixed(2));
-      await productosDAO.getInstance().update(id, this.form_cantidad).then(() => {
+      await productosDAO.getInstance().update(id, this.form_cantidad).then(async () => {
+        // Registrar Movimiento (ENTRADA)
+        try {
+          const movimiento = new Movimientos();
+          movimiento.producto_id = id;
+          movimiento.tipo = 'ENTRADA';
+          movimiento.cantidad = parseFloat(this.cantidad_agregar);
+          movimiento.fecha = Date.now();
+          movimiento.referencia = 'Agregado Manualmente';
+          movimiento.create_at = this.fechaCreacion;
+          await movimientosDAO.getInstance().save(movimiento);
+        } catch (error) {
+          console.error("Error al registrar entrada manual:", error);
+        }
+
         this.form_cantidad = {};
         this.cantidad_agregar = null;
         this.m_cantidad_producto = false;

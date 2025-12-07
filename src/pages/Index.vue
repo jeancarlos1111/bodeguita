@@ -121,6 +121,8 @@ import { valor_dolarDAO } from '../db/valor_dolarDAO';
 import { ventasDAO } from '../db/ventasDAO';
 import { Ventas } from '../models/Ventas';
 import { db } from '../db/db';
+import { movimientosDAO } from '../db/movimientosDAO';
+import { Movimientos } from '../models/Movimientos';
 
 export default {
   name: 'PageIndex',
@@ -215,15 +217,33 @@ export default {
       this.form.create_at = this.fechaCreacion;
       this.form.total = this.total;
       this.form.productos = this.lista_compras;
-      ventasDAO.getInstance().save(this.form).then(() => {
-        this.lista_compras.forEach(element => {
-          db.productos.get(element.id).then(function (producto) {
-            let resta_producto = producto.cantidad - element.cantidad;
-            db.productos.update(element.id, { cantidad: resta_producto });
-            //console.log(`Productos: ${resta_producto}`);
-          });
-          //console.log(product.cantidad)
-        })
+
+      ventasDAO.getInstance().save(this.form).then(async (ventaId) => {
+        // Guardar movimientos y actualizar stock
+        for (const element of this.lista_compras) {
+          try {
+            // 1. Registrar Movimiento (SALIDA)
+            const movimiento = new Movimientos();
+            movimiento.producto_id = element.id;
+            movimiento.tipo = 'SALIDA';
+            movimiento.cantidad = element.cantidad;
+            movimiento.fecha = Date.now();
+            movimiento.referencia = `Venta #${ventaId}`;
+            movimiento.create_at = this.fechaCreacion;
+
+            await movimientosDAO.getInstance().save(movimiento);
+
+            // 2. Actualizar Stock (existente)
+            const producto = await db.productos.get(element.id);
+            if (producto) {
+              let resta_producto = producto.cantidad - element.cantidad;
+              await db.productos.update(element.id, { cantidad: resta_producto });
+            }
+          } catch (err) {
+            console.error("Error al procesar producto en venta:", element.producto, err);
+          }
+        }
+
         this.form = new Ventas();
         this.lista_compras = [];
         this.total = 0;
@@ -231,14 +251,15 @@ export default {
         this.$q.notify({
           position: 'top',
           type: 'positive',
-          message: `Datos guardados.`
+          message: `Venta registrada con éxito.`
         });
-      }).catch(function (e) {
-        console.error(`Error: ${e.stack}`);
+      }).catch((e) => {
+        console.error(`Error: ${e.stack || e}`);
+        this.$q.loading.hide();
         this.$q.notify({
           position: 'top',
           type: 'negative',
-          message: `Error: ${e.stack}`
+          message: `Error al guardar venta: ${e.message}`
         });
       });
     },

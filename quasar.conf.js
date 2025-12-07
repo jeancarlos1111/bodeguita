@@ -6,6 +6,8 @@
 // Configuration for your app
 // https://v1.quasar.dev/quasar-cli/quasar-conf-js
 
+const path = require('path')
+
 module.exports = function (/* ctx */) {
   return {
     // https://v1.quasar.dev/quasar-cli/supporting-ts
@@ -65,8 +67,13 @@ module.exports = function (/* ctx */) {
 
       // https://v1.quasar.dev/quasar-cli/handling-webpack
       // "chain" is a webpack-chain object https://github.com/neutrinojs/webpack-chain
-      chainWebpack (/* chain */) {
-        //
+      chainWebpack (chain) {
+        chain.plugin('copy-statics')
+          .use(require('copy-webpack-plugin'), [{
+            patterns: [
+              { from: path.resolve(__dirname, 'src/statics'), to: '.' }
+            ]
+          }])
       },
     },
 

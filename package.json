@@ -9,6 +9,9 @@
     "test": "echo \"No test specified\" && exit 0",
     "deploy:gh": "bash scripts/deploy-gh-pages.sh"
   },
+  "resolutions": {
+    "cheerio": "1.0.0-rc.12"
+  },
   "dependencies": {
     "@quasar/extras": "^1.17.0",
     "axios": "^0.21.1",

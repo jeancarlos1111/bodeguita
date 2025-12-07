@@ -5,7 +5,7 @@
         <q-btn flat dense round icon="menu" aria-label="Menu" @click="leftDrawerOpen = !leftDrawerOpen" class="gt-sm" />
 
         <q-avatar square size="36px" class="q-mr-sm">
-          <img :src="`${$router.options.base || ''}icons/icon-128x128.png`">
+          <img :src="getPublicPath('icons/icon-128x128.png')">
         </q-avatar>
 
         <q-toolbar-title class="text-weight-bold text-dark">
@@ -23,7 +23,7 @@
       <q-scroll-area class="fit">
         <div class="q-pa-md text-center">
           <q-avatar size="80px" class="shadow-2">
-            <img :src="`${$router.options.base || ''}icons/icon-128x128.png`">
+            <img :src="getPublicPath('icons/icon-128x128.png')">
           </q-avatar>
           <div class="text-h6 q-mt-md text-primary">Bodeguita</div>
           <div class="text-caption text-grey">Administración</div>
@@ -98,7 +98,7 @@
         <q-card-section class="q-pt-md">
           <div class="row justify-center q-mb-md">
             <q-avatar square size="64px">
-              <img :src="`${$router.options.base || ''}icons/favicon-128x128.png`">
+              <img :src="getPublicPath('icons/favicon-128x128.png')">
             </q-avatar>
           </div>
           <p>
@@ -124,6 +124,14 @@ export default {
       leftDrawerOpen: false,
       m_acerca: false,
       tab: 'venta'
+    }
+  },
+  methods: {
+    getPublicPath(url) {
+      if (process.env.MODE === 'electron' || process.env.MODE === 'cordova') {
+        return url;
+      }
+      return (this.$router.options.base || '/') + url;
     }
   }
 }

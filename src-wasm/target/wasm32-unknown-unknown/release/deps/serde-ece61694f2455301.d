@@ -1,0 +1,14 @@
+/home/jean/www/node/Quasar/V1/bodeguita/src-wasm/target/wasm32-unknown-unknown/release/deps/libserde-ece61694f2455301.rmeta: /home/jean/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/lib.rs /home/jean/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/integer128.rs /home/jean/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/private/mod.rs /home/jean/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/private/de.rs /home/jean/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/private/ser.rs /home/jean/www/node/Quasar/V1/bodeguita/src-wasm/target/wasm32-unknown-unknown/release/build/serde-4c16732cb0d1dba4/out/private.rs
+
+/home/jean/www/node/Quasar/V1/bodeguita/src-wasm/target/wasm32-unknown-unknown/release/deps/libserde-ece61694f2455301.rlib: /home/jean/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/lib.rs /home/jean/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/integer128.rs /home/jean/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/private/mod.rs /home/jean/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/private/de.rs /home/jean/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/private/ser.rs /home/jean/www/node/Quasar/V1/bodeguita/src-wasm/target/wasm32-unknown-unknown/release/build/serde-4c16732cb0d1dba4/out/private.rs
+
+/home/jean/www/node/Quasar/V1/bodeguita/src-wasm/target/wasm32-unknown-unknown/release/deps/serde-ece61694f2455301.d: /home/jean/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/lib.rs /home/jean/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/integer128.rs /home/jean/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/private/mod.rs /home/jean/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/private/de.rs /home/jean/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/private/ser.rs /home/jean/www/node/Quasar/V1/bodeguita/src-wasm/target/wasm32-unknown-unknown/release/build/serde-4c16732cb0d1dba4/out/private.rs
+
+/home/jean/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/lib.rs:
+/home/jean/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/integer128.rs:
+/home/jean/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/private/mod.rs:
+/home/jean/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/private/de.rs:
+/home/jean/.cargo/registry/src/index.crates.io-6f17d22bba15001f/serde-1.0.228/src/private/ser.rs:
+/home/jean/www/node/Quasar/V1/bodeguita/src-wasm/target/wasm32-unknown-unknown/release/build/serde-4c16732cb0d1dba4/out/private.rs:
+
+# env-dep:OUT_DIR=/home/jean/www/node/Quasar/V1/bodeguita/src-wasm/target/wasm32-unknown-unknown/release/build/serde-4c16732cb0d1dba4/out

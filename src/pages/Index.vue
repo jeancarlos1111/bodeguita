@@ -91,7 +91,8 @@
             $ {{ formatMoneyUSD(total / valor_dolar) }}
           </div>
         </div>
-        <q-btn color="primary" label="Pagar" icon="payments" @click="save" rounded unelevated class="q-px-lg" />
+        <q-btn color="primary" label="Pagar" icon="payments" @click="confirmPaymentDialog = true" rounded unelevated
+          class="q-px-lg" />
       </div>
     </q-page-sticky>
 
@@ -106,12 +107,36 @@
             $ {{ formatMoneyUSD(total / valor_dolar) }}
           </div>
         </div>
-        <q-btn color="white" text-color="primary" label="Pagar" icon="payments" @click="save" rounded unelevated
-          size="lg" class="q-px-xl" />
+        <q-btn color="white" text-color="primary" label="Pagar" icon="payments" @click="confirmPaymentDialog = true"
+          rounded unelevated size="lg" class="q-px-xl" />
       </div>
     </q-page-sticky>
 
 
+    <!-- Payment Confirmation Dialog -->
+    <q-dialog v-model="confirmPaymentDialog">
+      <q-card style="min-width: 350px; border-radius: 16px;">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6 text-primary">Confirmar Pago</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+
+        <q-card-section>
+          <div class="text-subtitle1">
+            ¿Deseas procesar la venta por <span class="text-weight-bold">Bs {{ formatMoney(total) }}</span>?
+          </div>
+          <div class="text-caption text-grey" v-if="valor_dolar">
+            Equivalente a $ {{ formatMoneyUSD(total / valor_dolar) }}
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right" class="q-pt-none q-pb-md q-px-md">
+          <q-btn flat label="Cancelar" color="grey" v-close-popup />
+          <q-btn unelevated label="Confirmar" color="primary" @click="confirmAndSave" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
 
   </q-page>
 </template>
@@ -139,7 +164,8 @@ export default {
       producto: null,
       options: [],
       stringOptions: [],
-      recommendedProduct: null
+      recommendedProduct: null,
+      confirmPaymentDialog: false
     }
   },
   computed: {
@@ -220,6 +246,9 @@ export default {
 
 
     },
+    confirmAndSave() {
+      this.save();
+    },
     save() {
       this.$q.loading.show();
       this.form.create_at = this.fechaCreacion;
@@ -256,6 +285,11 @@ export default {
         this.lista_compras = [];
         this.total = 0;
         this.$q.loading.hide();
+
+        // Trigger model retraining in background
+        console.log("Training recommendation model with new sale data...");
+        recommendationService.train(); // Fire and forget, don't await to not block UI
+
         this.$q.notify({
           position: 'top',
           type: 'positive',

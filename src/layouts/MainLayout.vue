@@ -97,7 +97,7 @@
         <q-card-section class="row items-center q-pb-none">
           <div class="text-h6 text-primary">Acerca <q-badge align="middle" text-color="white"
               class="q-ml-sm rounded-borders bg-version">
-              v2.0.3
+              v2.1.5
             </q-badge></div>
           <q-space />
           <q-btn icon="close" flat round dense v-close-popup />

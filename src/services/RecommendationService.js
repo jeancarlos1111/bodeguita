@@ -1,180 +1,125 @@
-import * as tf from '@tensorflow/tfjs';
-import { setWasmPaths } from '@tensorflow/tfjs-backend-wasm';
-import { db } from '../db/db';
+import Worker from '../workers/recommendation.worker.js';
 
-const STAGNANT_DAYS = 0; // MODIFICADO PARA PRUEBAS (Normalmente 30)
+console.log("!!! RECOMMENDATION SERVICE FILE LOADED !!!");
 
 class RecommendationService {
     constructor() {
-        this.modelReady = false;
-        this.coOccurrenceMatrix = {};
-        this.productIndex = {}; // Maps productId to matrix index
-        this.reverseProductIndex = {}; // Maps matrix index to productId
-        this.stagnantProducts = [];
+        this.worker = null;
+        this.pendingRequests = new Map();
+        this.idCounter = 0;
+        this.ready = false;
     }
 
+    _generateId() {
+        return ++this.idCounter;
+    }
 
     async init() {
-        if (this.modelReady) return;
-
-        // Si ya está inicializado (por ejemplo, tras Hot Module Reload), no re-inicializar
-        if (tf.getBackend() === 'wasm') {
-            console.log('[TF.js] Backend WASM ya estaba activo (HMR).');
-            this.modelReady = true;
-            return;
-        }
+        if (this.ready) return;
 
         try {
-            // Configurar paths para WASM. En Quasar v1, 'src/statics' se sirve en la raíz ('/')
-            // Hemos copiado manualmente los archivos .wasm a 'src/statics' para asegurar que se sirvan.
-            // Si la app está en /bodeguita/, los archivos están en /bodeguita/
+            console.log('[RecommendationService] Initializing Worker...');
+            this.worker = new Worker();
+
+            this.worker.onmessage = (e) => {
+                console.log('[RecommendationService] Message from worker:', e.data);
+                const { id, type, payload } = e.data;
+                
+                if (type === 'ERROR') {
+                    console.error('[RecommendationService] Worker Error:', payload);
+                    if (this.pendingRequests.has(id)) {
+                        const { reject } = this.pendingRequests.get(id);
+                        reject(new Error(payload));
+                        this.pendingRequests.delete(id);
+                    }
+                    return;
+                }
+
+                if (this.pendingRequests.has(id)) {
+                    const { resolve } = this.pendingRequests.get(id);
+                    resolve(payload);
+                    this.pendingRequests.delete(id);
+                } else {
+                    console.warn('[RecommendationService] Received message with unknown or expired ID:', id);
+                }
+            };
             
-            const basePath = process.env.BASE_URL || '/';
-            console.log('[TF.js] Setting WASM path to:', basePath);
-            setWasmPaths(basePath);
+            this.worker.onerror = (e) => {
+                console.error('[RecommendationService] Worker Script Error:', e.message, 'at', e.filename, 'line', e.lineno);
+            };
+
+            // Calculate correct WASM URL from main thread context
+            // process.env.BASE_URL comes from Quasar (e.g., "/bodeguita/" or "./")
+            const baseUrl = window.location.origin + window.location.pathname.replace(/index\.html$/, '');
+            const wasmUrl = new URL('bodeguita_recommendations_bg.wasm', document.baseURI || baseUrl).href;
             
-            await tf.setBackend('wasm');
-            console.log('TF.js backend set to:', tf.getBackend());
-            
-            this.modelReady = true;
+            console.log('[RecommendationService] Configured WASM URL:', wasmUrl);
+
+            // Fetch WASM bytes manually to avoid file:// protocol issues with fetch() in Worker
+            const loadWasmBytes = (url) => {
+                return new Promise((resolve, reject) => {
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('GET', url, true);
+                    xhr.responseType = 'arraybuffer';
+                    xhr.onload = () => {
+                        // status 0 is often returned for file:// success
+                        if (xhr.status === 200 || (xhr.status === 0 && xhr.response)) {
+                            resolve(xhr.response);
+                        } else {
+                            reject(new Error(`Failed to load WASM via XHR. Status: ${xhr.status}`));
+                        }
+                    };
+                    xhr.onerror = () => reject(new Error('Network error loading WASM via XHR'));
+                    xhr.send();
+                });
+            };
+
+            try {
+                const wasmBytes = await loadWasmBytes(wasmUrl);
+                console.log(`[RecommendationService] WASM loaded as ArrayBuffer: ${wasmBytes.byteLength} bytes`);
+                
+                // Send configuration to worker with transferred buffer
+                this.worker.postMessage({ 
+                    type: 'INIT', 
+                    payload: { wasmBytes } 
+                }, [wasmBytes]);
+
+            } catch (loadError) {
+                console.error('[RecommendationService] Failed to load WASM bytes, falling back to URL:', loadError);
+                // Fallback to URL method if XHR fails
+                this.worker.postMessage({ 
+                    type: 'INIT', 
+                    payload: { wasmUrl } 
+                });
+            }
+
+            this.ready = true;
+            console.log('[RecommendationService] Worker initialized and ready.');
+
         } catch (error) {
-            console.error('Error initializing TF.js:', error);
-            // Fallback a CPU sí falla WASM, aunque será lento
-            await tf.setBackend('cpu');
+            console.error('[RecommendationService] Failed to initialize worker:', error);
         }
+    }
+
+    _send(type, payload = {}) {
+        if (!this.worker) this.init(); // Auto-init if not ready (though init is async, this might race, best to call init explicitly)
+
+        return new Promise((resolve, reject) => {
+            const id = this._generateId();
+            this.pendingRequests.set(id, { resolve, reject });
+            this.worker.postMessage({ id, type, payload });
+        });
     }
 
     async train() {
-        if (!this.modelReady) await this.init();
-
-        try {
-            // 1. Cargar datos de Ventas para construir matriz de co-ocurrencia
-            const ventas = await db.ventas.toArray();
-            
-            // Mapear productos e índices
-            const allProductIds = new Set();
-            ventas.forEach(venta => {
-                if (venta.productos && Array.isArray(venta.productos)) {
-                    venta.productos.forEach(p => allProductIds.add(p.id));
-                }
-            });
-
-            this.productIndex = {};
-            this.reverseProductIndex = {};
-            let idx = 0;
-            allProductIds.forEach(id => {
-                this.productIndex[id] = idx;
-                this.reverseProductIndex[idx] = id;
-                idx++;
-            });
-
-            // Construir matriz de co-ocurrencia simple
-            // count[A][B] = cuántas veces se compraron A y B juntos
-            this.coOccurrenceMatrix = {}; 
-
-            ventas.forEach(venta => {
-                if (!venta.productos || venta.productos.length < 2) return;
-                
-                const items = venta.productos;
-                for (let i = 0; i < items.length; i++) {
-                    for (let j = 0; j < items.length; j++) {
-                        if (i === j) continue;
-                        
-                        const pA = items[i].id;
-                        const pB = items[j].id;
-
-                        if (!this.coOccurrenceMatrix[pA]) this.coOccurrenceMatrix[pA] = {};
-                        if (!this.coOccurrenceMatrix[pA][pB]) this.coOccurrenceMatrix[pA][pB] = 0;
-                        
-                        this.coOccurrenceMatrix[pA][pB]++;
-                    }
-                }
-            });
-            
-            console.log("Recommendation model trained (Co-occurrence)");
-
-        } catch (e) {
-            console.error("Error training recommendation model:", e);
-        }
-    }
-
-    async findStagnantProducts() {
-        // Encontrar productos con stock > 0 que no han salido recientemente
-        try {
-            const allProducts = await db.productos.where('cantidad').above(0).toArray();
-            const now = Date.now();
-            const cutoffDate = now - (STAGNANT_DAYS * 24 * 60 * 60 * 1000);
-
-            const stagnant = [];
-
-            // Esta parte puede ser pesada si hay muchos movimientos, optimizar si es necesario
-            // Una mejor query sería sobre movimientos, pero movimientos puede ser muy grande.
-            // Para MVP: Iterar productos y chequear su último movimiento de SALIDA.
-            
-            for (const prod of allProducts) {
-                const lastMove = await db.movimientos
-                    .where('[producto_id+fecha]')
-                    .between([prod.id, cutoffDate], [prod.id, now])
-                    .filter(m => m.tipo === 'SALIDA')
-                    .last();
-
-                if (!lastMove) {
-                    stagnant.push(prod);
-                }
-            }
-            
-            this.stagnantProducts = stagnant;
-            console.log(`Found ${stagnant.length} stagnant products`);
-        } catch (e) {
-            console.error("Error finding stagnant products:", e);
-        }
+        if (!this.ready) await this.init();
+        console.log('[RecommendationService] Requesting model training...');
+        return this._send('TRAIN');
     }
 
     async getRecommendation(currentProductId, excludedIds = []) {
-        if (!this.modelReady) await this.init();
-        if (Object.keys(this.coOccurrenceMatrix).length === 0) {
-            // Entrenar perezosamente si está vacío
-            await this.train();
-            await this.findStagnantProducts();
-        }
-
-        // Buscar productos relacionados con high score
-        const related = this.coOccurrenceMatrix[currentProductId];
-        
-        console.log(`[TF.js] Buscando recomendaciones para ID: ${currentProductId}`);
-        // console.log(`[TF.js] Matriz de Co-ocurrencia para este producto:`, related);
-        
-        if (!related) {
-            console.log("[TF.js] No se encontraron productos relacionados en el historial de ventas.");
-            return null;
-        }
-
-        // Ordenar relacionados por frecuencia
-        const sortedRelatedIds = Object.keys(related)
-            .sort((a, b) => related[b] - related[a])
-            .map(id => parseInt(id));
-
-        // Intersección: Relacionados AND Estancados AND No Excluidos
-        // Priorizar el más relacionado que también esté estancado y NO esté ya en el carrito
-        const bestMatch = sortedRelatedIds.find(relatedId => 
-            this.stagnantProducts.some(sp => sp.id === relatedId) && 
-            !excludedIds.includes(relatedId)
-        );
-
-        if (bestMatch) {
-            const match = this.stagnantProducts.find(p => p.id === bestMatch);
-            console.log(`[TF.js] Recomendación encontrada: ${match.nombre}`);
-            return match;
-        }
-
-        console.log("[TF.js] Se encontraron relacionados, pero ninguno está marcado como estancado.");
-        
-        // Si no hay match directo estancado, podríamos devolver simplemente un estancado aleatorio
-        // o el producto más relacionado aunque no esté estancado (depende de la regla de negocio).
-        // El requerimiento dice: "sugiera ... producto ... para mover el stock que no se haya movido pero que ... tengan relacion"
-        // Si no hay intersección, no sugerimos nada para no ser molestos con recomendaciones irrelevantes.
-        
-        return null;
+        if (!this.ready) await this.init();
+        return this._send('RECOMMEND', { currentProductId, excludedIds });
     }
 }
 

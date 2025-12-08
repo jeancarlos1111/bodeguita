@@ -29,6 +29,7 @@ function createWindow () {
       // More info: https://quasar.dev/quasar-cli/developing-electron-apps/node-integration
       nodeIntegration: process.env.QUASAR_NODE_INTEGRATION,
       nodeIntegrationInWorker: process.env.QUASAR_NODE_INTEGRATION,
+      contextIsolation: false, // Required for Electron 12+ when using nodeIntegration
 
       // More info: /quasar-cli/developing-electron-apps/electron-preload-script
       // preload: path.resolve(__dirname, 'electron-preload.js')
@@ -36,6 +37,19 @@ function createWindow () {
   })
 
   mainWindow.loadURL(process.env.APP_URL)
+
+  if (process.env.DEBUGGING) {
+    // Force open with delay and detach mode to ensure visibility
+    setTimeout(() => {
+      console.log('Opening DevTools in DETACH mode now...')
+      mainWindow.webContents.openDevTools({ mode: 'detach' })
+    }, 1000)
+
+    // BRIDGE: Print browser logs to terminal so user can see what's happening
+    mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+      console.log(`[Renderer] ${message}`)
+    })
+  }
 
   mainWindow.on('closed', () => {
     mainWindow = null

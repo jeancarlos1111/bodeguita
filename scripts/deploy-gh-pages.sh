@@ -85,6 +85,9 @@ if [[ -f "$QUASAR_CONF" ]]; then
   fi
 fi
 
+echo "[deploy] Compilando WebAssembly..."
+npm run build:wasm
+
 echo "[deploy] Construyendo PWA..."
 
 # Detectar y usar Node 16 si nvm está disponible (necesario para Quasar v1)
@@ -136,6 +139,11 @@ fi
 if [[ ! -d "$DIST_DIR" ]]; then
   echo "[deploy] No se encontró $DIST_DIR" >&2
   exit 1
+fi
+# Eliminar .gitignore que ignora todo (*) generado por Quasar si existe
+# Esto previene que git add . ignore todos los archivos
+if [[ -f "$DIST_DIR/.gitignore" ]]; then
+  rm "$DIST_DIR/.gitignore"
 fi
 
 # Evitar procesamiento por Jekyll

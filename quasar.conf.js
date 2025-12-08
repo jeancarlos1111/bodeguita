@@ -71,9 +71,18 @@ module.exports = function (/* ctx */) {
         chain.plugin('copy-statics')
           .use(require('copy-webpack-plugin'), [{
             patterns: [
-              { from: path.resolve(__dirname, 'src/statics'), to: '.' }
+              { from: path.resolve(__dirname, 'src/statics'), to: '.' },
+              // Copy ONLY .wasm files directly to root. Simplifies imports and avoids copying .gitignore/package.json
+              { from: path.resolve(__dirname, 'src-wasm/pkg/*.wasm'), to: '.', flatten: true }
             ]
           }])
+
+        chain.module
+          .rule('worker')
+          .test(/\.worker\.js$/)
+          .use('worker-loader')
+          .loader('worker-loader')
+          .end()
       },
     },
 
@@ -120,7 +129,8 @@ module.exports = function (/* ctx */) {
       workboxPluginMode: 'GenerateSW', // 'GenerateSW' or 'InjectManifest'
       workboxOptions: {
         skipWaiting: true,
-        clientsClaim: true
+        clientsClaim: true,
+        exclude: [/\.gitignore$/]
       }, // only for GenerateSW
       manifest: {
         name: `Bodeguita`,

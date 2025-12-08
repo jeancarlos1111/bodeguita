@@ -40,6 +40,23 @@
 - ✅ **Responsive**: Diseño adaptativo para móviles y escritorio
 - ✅ **Multi-plataforma**: Web, Electron (escritorio), Cordova (móvil)
 
+### Nuevas Funcionalidades (v2.1+)
+
+#### 🧠 Sistema de Recomendaciones (WASM + Rust)
+Implementación de lógica de alto rendimiento usando **Rust** compilado a **WebAssembly**.
+- **Motor de Inferencia**: Detecta patrones de compra (matriz de co-ocurrencia) localmente en el dispositivo.
+- **Detección de Productos Estancados**: Algoritmo inteligente que sugiere productos con inventario inmovilizado para rotación.
+- **Web Workers**: Procesamiento en segundo plano para no bloquear la interfaz de usuario.
+
+#### 📦 Kardex Inteligente
+Nueva gestión avanzada de inventario:
+- **Trazabilidad Total**: Registro detallado de `MOVIMIENTOS` (entradas, salidas, ajustes, ventas).
+- **Control de Stock**: Auditoría precisa de cambios en el inventario en tiempo real.
+
+#### 💰 Refactorización de Precios (Costo vs Valor)
+- Migración completa del cálculo de ganancias basado en **Costo de Adquisición**.
+- Mayor precisión en reportes de margen de ganancia y rentabilidad.
+
 ---
 
 ## Stack Tecnológico
@@ -69,7 +86,7 @@
 - **Workbox**: Service Worker para PWA
 
 ### Plataformas Adicionales
-- **Electron v9.0.0**: Aplicación de escritorio
+- **Electron v13.0.0**: Aplicación de escritorio
 - **Cordova**: Aplicación móvil nativa
 
 ---
@@ -150,6 +167,12 @@ bodeguita/
 ├── src-pwa/              # Configuración PWA
 │   ├── custom-service-worker.js
 │   └── register-service-worker.js
+│
+├── src-wasm/             # Código fuente Rust (WebAssembly)
+│   ├── src/
+│   │   └── lib.rs       # Lógica principal en Rust
+│   ├── Cargo.toml       # Manifest de Rust
+│   └── pkg/             # Build generado (WASM + JS glue)
 │
 ├── scripts/              # Scripts de automatización
 │   └── deploy-gh-pages.sh # Script de despliegue a GitHub Pages
@@ -436,6 +459,36 @@ Las rutas están definidas en `src/router/routes.js`:
 
 ---
 
+## Desarrollo con WebAssembly (Rust)
+
+El proyecto incorpora un módulo de **Rust** compilado a WebAssembly para tareas intensivas de cómputo, específicamente para el motor de recomendaciones.
+
+### Estructura del Módulo (`src-wasm/`)
+
+- **`lib.rs`**: Contiene la lógica del negocio de alto rendimiento.
+  - `train_model_wasm`: Función que procesa miles de ventas para generar la matriz de co-ocurrencia.
+  - Implementa un algoritmo optimizado `O(N^2)` sobre arrays planos para máxima velocidad.
+
+### Ciclo de Trabajo con Rust
+
+1. **Instalar Rust y wasm-pack**:
+   ```bash
+   curl https://sh.rustup.rs -sSf | sh
+   cargo install wasm-pack
+   ```
+
+2. **Compilar el Módulo**:
+   El proyecto incluye un script en `package.json` para facilitar esto:
+   ```bash
+   npm run build:wasm
+   ```
+   *Este comando compila el código Rust en `src-wasm` y coloca los binarios resultantes en `src-wasm/pkg`, listos para ser importados por el Web Worker.*
+
+3. **Integración**:
+   El archivo `.wasm` se carga dinámicamente mediante `RecommendationService.js` para asegurar compatibilidad con todos los entornos (incluyendo Cordova restrictivo).
+
+---
+
 ## Despliegue
 
 ### GitHub Pages (PWA)
@@ -656,5 +709,5 @@ Este proyecto es privado.
 
 ---
 
-**Versión**: 1.5.2
+**Versión**: 2.1.5
 **Última actualización**: 2025

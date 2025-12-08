@@ -111,6 +111,8 @@
       </div>
     </q-page-sticky>
 
+
+
   </q-page>
 </template>
 
@@ -123,6 +125,7 @@ import { Ventas } from '../models/Ventas';
 import { db } from '../db/db';
 import { movimientosDAO } from '../db/movimientosDAO';
 import { Movimientos } from '../models/Movimientos';
+import { recommendationService } from '../services/RecommendationService';
 
 export default {
   name: 'PageIndex',
@@ -136,6 +139,7 @@ export default {
       producto: null,
       options: [],
       stringOptions: [],
+      recommendedProduct: null
     }
   },
   computed: {
@@ -151,6 +155,7 @@ export default {
   mounted() {
     this.getProdutos();
     this.getDolar();
+    recommendationService.init();
   },
   methods: {
     formatMoney(amount) {
@@ -201,6 +206,9 @@ export default {
           this.producto = null;
           this.cantidad = 1; // Reset quantity
           //console.log(monto_producto);
+
+          // Check for recommendations
+          this.checkRecommendation(result.id);
         });
       } else {
         this.$q.notify({
@@ -285,6 +293,46 @@ export default {
       if (!valorBs || !valorDolar) return 0;
       return parseFloat((valorBs / valorDolar).toFixed(2));
     },
+    async checkRecommendation(productId) {
+      try {
+        // Excluir productos que ya estan en el carrito
+        const excludedIds = this.lista_compras.map(item => item.id);
+
+        const recommendation = await recommendationService.getRecommendation(productId, excludedIds);
+        if (recommendation) {
+          this.recommendedProduct = recommendation;
+
+          // Usar Notify en lugar de Dialog para no bloquear
+          this.$q.notify({
+            message: `💡 Sugerencia: Clientes también llevan ${recommendation.nombre}`,
+            caption: 'Producto con poco movimiento disponible',
+            color: 'indigo-10',
+            icon: 'lightbulb',
+            position: 'bottom-right',
+            timeout: 10000, // 10 segundos para decidir
+            actions: [
+              { label: 'Omitir', color: 'white', handler: () => { /* Do nothing */ } },
+              { label: 'Agregar', color: 'yellow', handler: () => { this.confirmRecommendation() } }
+            ]
+          });
+        }
+      } catch (e) {
+        console.error("Error checking recommendation:", e);
+      }
+    },
+    confirmRecommendation() {
+      if (this.recommendedProduct) {
+        this.producto = this.recommendedProduct.nombre; // Set select value
+        this.agregarListaCompra();
+        this.recommendedProduct = null;
+      }
+    }
   }
 }
 </script>
+
+<style scoped>
+.rounded-card {
+  border-radius: 16px;
+}
+</style>

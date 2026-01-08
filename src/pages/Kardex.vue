@@ -39,7 +39,8 @@
                                 <div class="text-subtitle2 text-grey-7">Stock: {{ sugerencia.producto.cantidad }}</div>
                             </div>
                             <div class="col-auto">
-                                <q-btn round color="primary" icon="add_shopping_cart" flat dense />
+                                <q-btn round color="primary" icon="add_shopping_cart" flat dense
+                                    @click="openStockDialog(sugerencia.producto)" tooltip="Agregar Existencia" />
                             </div>
                         </div>
                     </q-card-section>
@@ -93,6 +94,29 @@
                 </q-tr>
             </template>
         </q-table>
+
+        <!-- Dialogo para agregar existencia -->
+        <q-dialog v-model="showDialogStock">
+            <q-card style="min-width: 350px">
+                <q-card-section>
+                    <div class="text-h6">Agregar Existencia</div>
+                    <div class="text-subtitle2" v-if="selectedProduct">
+                        {{ selectedProduct.nombre }} (Actual: {{ selectedProduct.cantidad }})
+                    </div>
+                </q-card-section>
+
+                <q-card-section class="q-pt-none">
+                    <q-input dense v-model.number="stockForm.cantidad" type="number" autofocus
+                        label="Cantidad a agregar" :rules="[val => val > 0 || 'Debe ser mayor a 0']"
+                        @keyup.enter="saveStock" />
+                </q-card-section>
+
+                <q-card-actions align="right" class="text-primary">
+                    <q-btn flat label="Cancelar" v-close-popup />
+                    <q-btn flat label="Guardar" @click="saveStock" />
+                </q-card-actions>
+            </q-card>
+        </q-dialog>
     </q-page>
 </template>
 
@@ -101,6 +125,7 @@ import { date } from 'quasar';
 import { movimientosDAO } from '../db/movimientosDAO';
 import { productosDAO } from '../db/productosDAO';
 import { KardexService } from '../services/KardexService';
+import { Movimientos } from '../models/Movimientos';
 
 export default {
     name: 'PageKardex',
@@ -113,6 +138,11 @@ export default {
                 productosBajoStock: 0,
                 productosCriticos: 0,
                 topSugerencias: []
+            },
+            showDialogStock: false,
+            selectedProduct: null,
+            stockForm: {
+                cantidad: ''
             },
             columns: [
                 { name: 'fecha', label: 'Fecha', align: 'left', field: 'fecha', sortable: true },
@@ -156,6 +186,48 @@ export default {
             if (tipo === 'ENTRADA') return 'positive';
             if (tipo === 'SALIDA') return 'negative';
             return 'warning'; // AJUSTE
+        },
+        openStockDialog(producto) {
+            this.selectedProduct = producto;
+            this.stockForm.cantidad = '';
+            this.showDialogStock = true;
+        },
+        async saveStock() {
+            if (!this.stockForm.cantidad || this.stockForm.cantidad <= 0) {
+                this.$q.notify({ type: 'warning', message: 'Ingrese una cantidad válida' });
+                return;
+            }
+
+            try {
+                // 1. Actualizar Producto
+                const nuevoStock = Number(this.selectedProduct.cantidad) + Number(this.stockForm.cantidad);
+                await productosDAO.getInstance().update(this.selectedProduct.id, {
+                    cantidad: nuevoStock
+                });
+
+                // 2. Registrar Movimiento
+                const movimiento = new Movimientos();
+                movimiento.producto_id = this.selectedProduct.id;
+                movimiento.tipo = 'ENTRADA';
+                movimiento.cantidad = Number(this.stockForm.cantidad);
+                movimiento.fecha = Date.now();
+                movimiento.referencia = 'Reabastecimiento desde Kardex';
+                movimiento.create_at = new Date();
+
+                await movimientosDAO.getInstance().save(movimiento);
+
+                this.$q.notify({ type: 'positive', message: 'Existencia agregada correctamente' });
+                this.showDialogStock = false;
+
+                // 3. Recargar datos
+                await this.loadProductos();
+                await this.loadMovimientos();
+                await this.loadAnalisis();
+
+            } catch (e) {
+                console.error(e);
+                this.$q.notify({ type: 'negative', message: 'Error al actualizar inventario' });
+            }
         }
     }
 };

@@ -2,7 +2,7 @@
   <q-layout view="lHh Lpr lFf" class="bg-grey-1">
     <q-header class="bg-white text-primary shadow-1">
       <q-toolbar class="q-py-sm">
-        <q-btn flat dense round icon="menu" aria-label="Menu" @click="leftDrawerOpen = !leftDrawerOpen" class="gt-sm" />
+        <q-btn flat dense round icon="menu" aria-label="Menu" @click="leftDrawerOpen = !leftDrawerOpen" />
 
         <q-avatar square size="36px" class="q-mr-sm">
           <img :src="getPublicPath('icons/icon-128x128.png')">
@@ -19,7 +19,7 @@
       </q-toolbar>
     </q-header>
 
-    <q-drawer v-model="leftDrawerOpen" show-if-above bordered content-class="bg-white" :width="260" class="gt-sm">
+    <q-drawer v-model="leftDrawerOpen" show-if-above bordered content-class="bg-white" :width="260">
       <q-scroll-area class="fit">
         <div class="q-pa-md text-center">
           <q-avatar size="80px" class="shadow-2">
@@ -58,6 +58,13 @@
             <q-item-section>Productos</q-item-section>
           </q-item>
 
+          <q-item to="/cierre-caja" exact clickable v-ripple active-class="text-primary bg-indigo-1">
+            <q-item-section avatar>
+              <q-icon name="point_of_sale" />
+            </q-item-section>
+            <q-item-section>Cierre de Caja</q-item-section>
+          </q-item>
+
           <q-item to="/kardex" exact clickable v-ripple active-class="text-primary bg-indigo-1">
             <q-item-section avatar>
               <q-icon name="psychology" />
@@ -65,11 +72,32 @@
             <q-item-section>Kardex</q-item-section>
           </q-item>
 
+          <q-item to="/configuracion" exact clickable v-ripple active-class="text-primary bg-indigo-1">
+            <q-item-section avatar>
+              <q-icon name="settings" />
+            </q-item-section>
+            <q-item-section>Configuración</q-item-section>
+          </q-item>
+
           <q-item to="/valor_dolar" exact clickable v-ripple active-class="text-primary bg-indigo-1">
             <q-item-section avatar>
               <q-icon name="attach_money" />
             </q-item-section>
             <q-item-section>Valor Dolar</q-item-section>
+          </q-item>
+
+          <q-item to="/cuentas-por-cobrar" exact clickable v-ripple active-class="text-primary bg-indigo-1">
+            <q-item-section avatar>
+              <q-icon name="account_balance_wallet" />
+            </q-item-section>
+            <q-item-section>Cuentas por Cobrar</q-item-section>
+          </q-item>
+
+          <q-item to="/libro-ventas" exact clickable v-ripple active-class="text-primary bg-indigo-1">
+            <q-item-section avatar>
+              <q-icon name="menu_book" />
+            </q-item-section>
+            <q-item-section>Libro de Ventas</q-item-section>
           </q-item>
         </q-list>
       </q-scroll-area>
@@ -97,7 +125,7 @@
         <q-card-section class="row items-center q-pb-none">
           <div class="text-h6 text-primary">Acerca <q-badge align="middle" text-color="white"
               class="q-ml-sm rounded-borders bg-version">
-              v2.1.5
+              v2.2.3
             </q-badge></div>
           <q-space />
           <q-btn icon="close" flat round dense v-close-popup />

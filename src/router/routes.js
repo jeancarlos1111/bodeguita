@@ -8,8 +8,12 @@ const routes = [
       { path: '/productos', component: () => import('pages/Productos.vue') },
       { path: '/ventas', component: () => import('pages/Ventas.vue') },
       { path: '/ventas-por-producto', component: () => import('pages/VentasPorProducto.vue') },
+      { path: '/cierre-caja', component: () => import('pages/CierreCaja.vue') },
+      { path: '/configuracion', component: () => import('pages/Configuracion.vue') },
       { path: '/kardex', component: () => import('pages/Kardex.vue') },
-      { path: '/valor_dolar', component: () => import('pages/ValorDolar.vue') }
+      { path: '/valor_dolar', component: () => import('pages/ValorDolar.vue') },
+      { path: '/cuentas-por-cobrar', component: () => import('pages/CuentasPorCobrar.vue') },
+      { path: '/libro-ventas', component: () => import('pages/LibroVentas.vue') }
     ]
   },
 

@@ -123,9 +123,17 @@
         </q-card-section>
 
         <q-card-section>
-          <div class="text-subtitle1">
+          <div class="text-subtitle1 q-mb-md">
             ¿Deseas procesar la venta por <span class="text-weight-bold">Bs {{ formatMoney(total) }}</span>?
           </div>
+
+          <q-select filled v-model="form.metodo_pago" :options="paymentOptions" label="Método de Pago" class="q-mb-sm"
+            :rules="[val => !!val || 'Requerido']">
+            <template v-slot:prepend>
+              <q-icon name="payments" />
+            </template>
+          </q-select>
+
           <div class="text-caption text-grey" v-if="valor_dolar">
             Equivalente a $ {{ formatMoneyUSD(total / valor_dolar) }}
           </div>
@@ -134,6 +142,49 @@
         <q-card-actions align="right" class="q-pt-none q-pb-md q-px-md">
           <q-btn flat label="Cancelar" color="grey" v-close-popup />
           <q-btn unelevated label="Confirmar" color="primary" @click="confirmAndSave" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- Client Dialog for Fiado -->
+    <q-dialog v-model="clienteDialog" persistent>
+      <q-card style="min-width: 350px; border-radius: 16px;">
+        <q-card-section class="row items-center">
+          <div class="text-h6 text-primary">Cliente para Fiado</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+
+        <q-card-section>
+          <div class="row q-col-gutter-sm items-end">
+            <div class="col">
+              <q-input filled v-model="cedulaSearch" label="Cédula" @keyup.enter="buscarCliente" autofocus />
+            </div>
+            <div class="col-auto">
+              <q-btn icon="search" color="primary" @click="buscarCliente" class="q-mb-sm" round unelevated />
+            </div>
+          </div>
+        </q-card-section>
+
+        <q-card-section v-if="clienteFound === false">
+          <div class="text-subtitle2 text-orange q-mb-sm">Cliente no encontrado. Registrar nuevo:</div>
+          <q-input filled v-model="clienteForm.nombre" label="Nombre y Apellido" class="q-mb-sm" />
+          <q-input filled v-model="clienteForm.telefono" label="Teléfono" class="q-mb-sm" />
+        </q-card-section>
+
+        <q-card-section v-if="clienteFound">
+          <div class="text-subtitle1 text-indigo-10">
+            <strong>Cliente:</strong> {{ clienteFound.nombre }} <br>
+            <small>{{ clienteFound.telefono }}</small>
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat label="Cancelar" color="grey" v-close-popup />
+
+          <q-btn v-if="clienteFound === false" label="Registrar y Procesar" color="primary"
+            @click="registrarYContinuar" />
+          <q-btn v-if="clienteFound" label="Confirmar Fiado" color="primary" @click="confirmarFiadoExistente" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -151,6 +202,9 @@ import { db } from '../db/db';
 import { movimientosDAO } from '../db/movimientosDAO';
 import { Movimientos } from '../models/Movimientos';
 import { recommendationService } from '../services/RecommendationService';
+import { configuracionDAO } from '../db/configuracionDAO';
+import { clientesDAO } from '../db/clientesDAO';
+import { Clientes } from '../models/Clientes';
 
 export default {
   name: 'PageIndex',
@@ -165,7 +219,22 @@ export default {
       options: [],
       stringOptions: [],
       recommendedProduct: null,
-      confirmPaymentDialog: false
+      confirmPaymentDialog: false,
+      paymentOptions: ['Efectivo Bs', 'Efectivo $', 'Pago Móvil', 'Punto de Venta', 'Zelle', 'Fiado'],
+
+      // Client/Fiado Logic
+      clienteDialog: false,
+      clienteFound: null,
+      clienteForm: new Clientes(),
+      cedulaSearch: '',
+
+      // Tax Logic
+      tributos: {
+        cobrar_iva: false,
+        cobrar_igtf: false
+      },
+      montoIGTF: 0,
+      totalConIGTF: 0
     }
   },
   computed: {
@@ -178,17 +247,34 @@ export default {
       return date.formatDate(timeStamp, 'YYYY/MM/DD HH:mm:ss');
     }
   },
+  watch: {
+    'form.metodo_pago'(val) {
+      if (['Efectivo $', 'Zelle'].includes(val) && this.tributos.cobrar_igtf) {
+        this.calcularIGTF();
+      } else {
+        this.montoIGTF = 0;
+        this.totalConIGTF = this.total;
+      }
+    }
+  },
   mounted() {
     this.getProdutos();
     this.getDolar();
+    this.loadConfig();
     recommendationService.init();
   },
   methods: {
+    async loadConfig() {
+      const taxes = await configuracionDAO.getInstance().get('tributos');
+      if (taxes) {
+        this.tributos = { ...taxes };
+      }
+    },
     formatMoney(amount) {
-      return new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
+      return new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount || 0);
     },
     formatMoneyUSD(amount) {
-      return new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
+      return new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount || 0);
     },
     getProdutos() {
       productosDAO.getInstance().get().then(result => { result.forEach(element => this.stringOptions.push(element.nombre)) });
@@ -201,39 +287,74 @@ export default {
       if (producto) {
         this.$q.loading.show();
         productosDAO.getInstance().getNombre(producto).then((result) => {
-          //console.log(result);
           this.$q.loading.hide();
           const porcentaje = Number(result.porcentaje_ganancia || 0);
-          const iva = Number(result.porcentaje_iva || 0);
-          // Precio sin IVA: Costo + Ganancia
-          const precioSinIva = Number(result.costo || 0) * (1 + (porcentaje / 100));
-          // IVA sobre precio sin IVA
-          const montoIva = precioSinIva * (iva / 100);
-          // Precio final con IVA
-          const precioUsdConGanancia = precioSinIva + montoIva;
-          const costoUsd = Number(result.costo || 0);
-          const costoTotalBs = (costoUsd * Number(this.valor_dolar) * Number(this.cantidad));
-          let monto_producto = (precioUsdConGanancia * Number(this.valor_dolar) * Number(this.cantidad));
-          const valor_unitario_bs = (precioUsdConGanancia * Number(this.valor_dolar));
-          const costo_unitario_bs = (costoUsd * Number(this.valor_dolar));
+          const ivaPorc = Number(result.porcentaje_iva || 0);
+
+          // Precio Base (Costo + Ganancia)
+          const precioBaseUsd = Number(result.costo || 0) * (1 + (porcentaje / 100));
+
+          let precioFinalUsd = precioBaseUsd;
+          let montoIvaUsd = 0;
+
+          // Si 'Cobrar IVA' está activo y el producto tiene IVA definido
+          if (this.tributos.cobrar_iva && ivaPorc > 0) {
+            montoIvaUsd = precioBaseUsd * (ivaPorc / 100);
+            precioFinalUsd = precioBaseUsd + montoIvaUsd;
+          }
+          // Si NO está activo, asumimos que el precio de venta ya es final y no desglosamos (Fiscalmente Exento en práctica)
+          // O si el producto es exento (ivaPorc = 0)
+
+          const tasa = Number(this.valor_dolar);
+          const cantidad = Number(this.cantidad);
+
+          // VALIDATION: Check Stock
+          const cantidadEnCarrito = this.lista_compras
+            .filter(item => item.id === result.id)
+            .reduce((acc, item) => acc + item.cantidad, 0);
+
+          if ((cantidad + cantidadEnCarrito) > result.cantidad) {
+            this.$q.loading.hide();
+            this.$q.notify({
+              type: 'negative',
+              message: `Stock insuficiente. Disponible: ${result.cantidad}. (En carrito: ${cantidadEnCarrito})`
+            });
+            return;
+          }
+
+          const costoTotalBs = (Number(result.costo || 0) * tasa * cantidad);
+
+          const valor_unitario_bs = precioFinalUsd * tasa;
+          const monto_total_bs = valor_unitario_bs * cantidad;
+
+          // Fiscal breakdowns per item (total line)
+          const base_linea_bs = (precioBaseUsd * tasa * cantidad);
+          const iva_linea_bs = (montoIvaUsd * tasa * cantidad);
+
           this.lista_compras.push({
             id: result.id,
             producto: result.nombre,
-            valor_bs: monto_producto,
+            valor_bs: monto_total_bs, // Precio Final Venta en Bs
             valor_unitario_bs: valor_unitario_bs,
             costo_total_bs: costoTotalBs,
-            costo_unitario_bs: costo_unitario_bs,
-            cantidad: this.cantidad,
-            valor_dolar: this.valor_dolar,
-            existencia: result.cantidad
-          });
-          //this.lista_compras.forEach(element => this.total += Number(element.valor_bs));
-          this.total = this.total + monto_producto;
-          this.producto = null;
-          this.cantidad = 1; // Reset quantity
-          //console.log(monto_producto);
+            costo_unitario_bs: (Number(result.costo || 0) * tasa),
+            cantidad: cantidad,
+            valor_dolar: tasa,
+            existencia: result.cantidad,
 
-          // Check for recommendations
+            // Fiscal Data
+            es_exento: !this.tributos.cobrar_iva || ivaPorc === 0,
+            tasa_iva: this.tributos.cobrar_iva ? ivaPorc : 0,
+            monto_base_bs: base_linea_bs,
+            monto_iva_bs: iva_linea_bs
+          });
+
+          this.total = this.lista_compras.reduce((acc, el) => acc + el.valor_bs, 0);
+          this.totalConIGTF = this.total; // Reset logic handles updates
+
+          this.producto = null;
+          this.cantidad = 1;
+
           this.checkRecommendation(result.id);
         });
       } else {
@@ -243,59 +364,176 @@ export default {
           message: `Debe agregar un producto a la lista`
         });
       }
-
-
+    },
+    calcularIGTF() {
+      // Si pago en Divisas, aplicar 3% sobre el monto equivalente en Bs o sobre el monto $ convertido
+      // Asumimos pago total en divisa
+      if (this.tributos.cobrar_igtf) {
+        this.montoIGTF = this.total * 0.03;
+        this.totalConIGTF = this.total + this.montoIGTF;
+      }
     },
     confirmAndSave() {
+      if (!this.form.metodo_pago) {
+        this.$q.notify({
+          type: 'warning',
+          message: 'Seleccione un método de pago'
+        });
+        return;
+      }
+      if (this.form.metodo_pago === 'Fiado') {
+        this.clienteDialog = true;
+        this.clienteFound = null;
+        this.clienteForm = new Clientes();
+        this.cedulaSearch = '';
+        return;
+      }
       this.save();
     },
-    save() {
+    async buscarCliente() {
+      if (!this.cedulaSearch) return;
+      this.$q.loading.show();
+      try {
+        const cliente = await clientesDAO.getInstance().getByCedula(this.cedulaSearch);
+        if (cliente) {
+          this.clienteFound = cliente;
+          this.clienteForm = { ...cliente };
+        } else {
+          this.clienteFound = false;
+          this.clienteForm = new Clientes();
+          this.clienteForm.cedula = this.cedulaSearch;
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        this.$q.loading.hide();
+      }
+    },
+    async registrarYContinuar() {
+      if (!this.clienteForm.nombre || !this.clienteForm.telefono) {
+        this.$q.notify({ type: 'warning', message: 'Nombre y Teléfono son requeridos' });
+        return;
+      }
+
+      this.$q.loading.show();
+      try {
+        let clienteId;
+        if (this.clienteFound && this.clienteFound.id) {
+          clienteId = this.clienteFound.id;
+        } else {
+          this.clienteForm.create_at = this.fechaCreacion;
+          clienteId = await clientesDAO.getInstance().save(this.clienteForm);
+        }
+
+        this.form.cliente_id = clienteId;
+        this.form.cliente_nombre = this.clienteForm.nombre;
+        this.form.estado = 'PENDIENTE';
+
+        this.clienteDialog = false;
+        await this.save(true);
+
+      } catch (e) {
+        console.error(e);
+        this.$q.notify({ type: 'negative', message: 'Error registrando cliente' });
+      } finally {
+        this.$q.loading.hide();
+      }
+    },
+    async confirmarFiadoExistente() {
+      if (!this.clienteFound) return;
+
+      this.form.cliente_id = this.clienteFound.id;
+      this.form.cliente_nombre = this.clienteFound.nombre;
+      this.form.estado = 'PENDIENTE';
+
+      this.clienteDialog = false;
+      await this.save();
+    },
+    async save(isFiadoConfirmed = false) {
       this.$q.loading.show();
       this.form.create_at = this.fechaCreacion;
-      this.form.total = this.total;
+      this.form.total = this.totalConIGTF; // Save total PAID (including tax)
       this.form.productos = this.lista_compras;
+      this.form.metodo_pago = this.form.metodo_pago; // Already set
 
-      ventasDAO.getInstance().save(this.form).then(async (ventaId) => {
-        // Guardar movimientos y actualizar stock
+      // Fiscal Summaries
+      let monto_exento = 0;
+      let monto_base = 0;
+      let monto_iva = 0;
+
+      this.lista_compras.forEach(item => {
+        if (item.es_exento) {
+          monto_exento += item.valor_bs;
+        } else {
+          monto_base += item.monto_base_bs;
+          monto_iva += item.monto_iva_bs;
+        }
+      });
+
+      this.form.monto_exento = monto_exento;
+      this.form.monto_base = monto_base;
+      this.form.monto_iva = monto_iva;
+      this.form.tasa_iva = 16; // Standard calc reference
+
+      this.form.monto_igtf = this.montoIGTF;
+      this.form.tasa_dolar = this.valor_dolar;
+      // If paid in dollars, we estimate amount in USD
+      if (['Efectivo $', 'Zelle'].includes(this.form.metodo_pago)) {
+        this.form.monto_dolar = this.total / this.valor_dolar;
+      } else {
+        this.form.monto_dolar = 0;
+      }
+
+
+      try {
+        let currentSeq = await configuracionDAO.getInstance().get('secuencia_factura');
+        if (!currentSeq) currentSeq = 1;
+        else currentSeq = Number(currentSeq) + 1;
+
+        this.form.numero_factura = currentSeq;
+
+        const ventaId = await ventasDAO.getInstance().save(this.form);
+
+        await configuracionDAO.getInstance().save('secuencia_factura', currentSeq);
+
         for (const element of this.lista_compras) {
-          try {
-            // 1. Registrar Movimiento (SALIDA)
-            const movimiento = new Movimientos();
-            movimiento.producto_id = element.id;
-            movimiento.tipo = 'SALIDA';
-            movimiento.cantidad = element.cantidad;
-            movimiento.fecha = Date.now();
-            movimiento.referencia = `Venta #${ventaId}`;
-            movimiento.create_at = this.fechaCreacion;
+          const movimiento = new Movimientos();
+          movimiento.producto_id = element.id;
+          movimiento.tipo = 'SALIDA';
+          movimiento.cantidad = element.cantidad;
+          movimiento.fecha = Date.now();
+          movimiento.referencia = `Venta #${ventaId} (Fac: ${currentSeq})`;
+          movimiento.create_at = this.fechaCreacion;
 
-            await movimientosDAO.getInstance().save(movimiento);
+          await movimientosDAO.getInstance().save(movimiento);
 
-            // 2. Actualizar Stock (existente)
-            const producto = await db.productos.get(element.id);
-            if (producto) {
-              let resta_producto = producto.cantidad - element.cantidad;
-              await db.productos.update(element.id, { cantidad: resta_producto });
-            }
-          } catch (err) {
-            console.error("Error al procesar producto en venta:", element.producto, err);
+          const producto = await db.productos.get(element.id);
+          if (producto) {
+            let resta_producto = producto.cantidad - element.cantidad;
+            await db.productos.update(element.id, { cantidad: resta_producto });
           }
         }
 
         this.form = new Ventas();
+        this.form.cliente_id = null;
+        this.form.cliente_nombre = null;
+        this.form.estado = 'PAGADO';
+        this.montoIGTF = 0;
+        this.totalConIGTF = 0;
+
         this.lista_compras = [];
         this.total = 0;
         this.$q.loading.hide();
 
-        // Trigger model retraining in background
-        console.log("Training recommendation model with new sale data...");
-        recommendationService.train(); // Fire and forget, don't await to not block UI
+        recommendationService.train();
 
         this.$q.notify({
           position: 'top',
           type: 'positive',
-          message: `Venta registrada con éxito.`
+          message: `Venta registrada con éxito. Factura #${currentSeq}`
         });
-      }).catch((e) => {
+
+      } catch (e) {
         console.error(`Error: ${e.stack || e}`);
         this.$q.loading.hide();
         this.$q.notify({
@@ -303,14 +541,22 @@ export default {
           type: 'negative',
           message: `Error al guardar venta: ${e.message}`
         });
-      });
+      }
     },
     eliminarProductoLista(index) {
       console.log(index)
       let monto_quitar = this.lista_compras[index];
       this.lista_compras.splice(index, 1);
-      this.total = this.total - monto_quitar.valor_bs;
 
+      // Re-sum total from remaining items to be safe and accurate
+      this.total = this.lista_compras.reduce((acc, el) => acc + el.valor_bs, 0);
+
+      // Recalc IGTF if needed
+      if (['Efectivo $', 'Zelle'].includes(this.form.metodo_pago) && this.tributos.cobrar_igtf) {
+        this.calcularIGTF();
+      } else {
+        this.totalConIGTF = this.total;
+      }
     },
     filterFn(val, update, abort) {
       if (val.length < 2) {
@@ -329,23 +575,19 @@ export default {
     },
     async checkRecommendation(productId) {
       try {
-        // Excluir productos que ya estan en el carrito
         const excludedIds = this.lista_compras.map(item => item.id);
-
         const recommendation = await recommendationService.getRecommendation(productId, excludedIds);
         if (recommendation) {
           this.recommendedProduct = recommendation;
-
-          // Usar Notify en lugar de Dialog para no bloquear
           this.$q.notify({
             message: `💡 Sugerencia: Clientes también llevan ${recommendation.nombre}`,
             caption: 'Producto con poco movimiento disponible',
             color: 'indigo-10',
             icon: 'lightbulb',
             position: 'bottom-right',
-            timeout: 10000, // 10 segundos para decidir
+            timeout: 10000,
             actions: [
-              { label: 'Omitir', color: 'white', handler: () => { /* Do nothing */ } },
+              { label: 'Omitir', color: 'white', handler: () => { } },
               { label: 'Agregar', color: 'yellow', handler: () => { this.confirmRecommendation() } }
             ]
           });
@@ -356,7 +598,7 @@ export default {
     },
     confirmRecommendation() {
       if (this.recommendedProduct) {
-        this.producto = this.recommendedProduct.nombre; // Set select value
+        this.producto = this.recommendedProduct.nombre;
         this.agregarListaCompra();
         this.recommendedProduct = null;
       }

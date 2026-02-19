@@ -65,17 +65,17 @@
         </q-card>
 
         <q-dialog v-model="detalleDialog">
-            <q-card style="min-width: 350px">
+            <q-card style="min-width: 350px" v-if="selectedVenta">
                 <q-card-section>
-                    <div class="text-h6">Detalle de Venta #{{ selectedVenta?.numero_factura }}</div>
-                    <div class="text-subtitle2">{{ selectedVenta?.cliente_nombre }} - {{
-                        formatDate(selectedVenta?.create_at) }}
+                    <div class="text-h6">Detalle de Venta #{{ selectedVenta.numero_factura }}</div>
+                    <div class="text-subtitle2">{{ selectedVenta.cliente_nombre }} - {{
+                        formatDate(selectedVenta.create_at) }}
                     </div>
                 </q-card-section>
 
                 <q-card-section>
                     <q-list dense separator>
-                        <q-item v-for="(prod, index) in selectedVenta?.productos" :key="index">
+                        <q-item v-for="(prod, index) in selectedVenta.productos" :key="index">
                             <q-item-section>
                                 <q-item-label>{{ prod.producto }}</q-item-label>
                                 <q-item-label caption>Cant: {{ prod.cantidad }}</q-item-label>
@@ -108,7 +108,7 @@
                     </div>
 
                     <q-input filled v-model="paymentForm.amount" label="Monto a Pagar" type="number" prefix="Bs"
-                        autofocus
+                        autofocus step="0.01"
                         :rules="[val => val > 0 || 'El monto debe ser mayor a 0', val => val <= paymentForm.max || 'Monto excede deuda']" />
                 </q-card-section>
 
@@ -127,6 +127,7 @@ import { date } from 'quasar';
 import { ventasDAO } from '../db/ventasDAO';
 import { valor_dolarDAO } from '../db/valor_dolarDAO';
 import { db } from '../db/db';
+import Decimal from 'decimal.js';
 
 export default {
     name: 'CuentasPorCobrar',
@@ -189,8 +190,9 @@ export default {
                     cliente = await db.clientes.get(venta.cliente_id) || {};
                 }
 
-                const pagado = venta.monto_pagado || 0;
-                const restante = venta.total - pagado;
+                const pagado = new Decimal(venta.monto_pagado || 0);
+                const total = new Decimal(venta.total || 0);
+                const restante = total.minus(pagado);
 
                 // Asegurar que cliente_nombre exista si no viene del join
                 const nombreCliente = cliente.nombre || venta.cliente_nombre || 'Cliente Desconocido';
@@ -200,15 +202,15 @@ export default {
                     ...venta,
                     cliente_cedula: cedulaCliente,
                     cliente_nombre: nombreCliente, // Prioridad al nombre en tabla clientes, fallback al de la venta
-                    monto_pagado: pagado,
-                    restante: restante
+                    monto_pagado: pagado.toNumber(),
+                    restante: restante.toNumber()
                 };
             }));
 
             this.calculateTotal();
         },
         calculateTotal() {
-            this.totalPendiente = this.ventasPendientes.reduce((acc, curr) => acc + Number(curr.restante), 0);
+            this.totalPendiente = this.ventasPendientes.reduce((acc, curr) => new Decimal(acc).plus(curr.restante).toNumber(), 0);
         },
         verDetalle(venta) {
             this.selectedVenta = venta;
@@ -224,20 +226,20 @@ export default {
             this.paymentForm.amount = this.paymentForm.max;
         },
         async procesarPago() {
-            const montoAbonar = Number(this.paymentForm.amount);
+            const montoAbonar = new Decimal(this.paymentForm.amount || 0);
 
-            if (montoAbonar <= 0) {
+            if (montoAbonar.lte(0)) {
                 this.$q.notify({ type: 'warning', message: 'El monto debe ser mayor a 0' });
                 return;
             }
 
-            if (montoAbonar > this.paymentForm.max) {
+            if (montoAbonar.gt(this.paymentForm.max)) {
                 this.$q.notify({ type: 'negative', message: 'El monto excede la deuda restante' });
                 return;
             }
 
             try {
-                const nuevoPagado = (this.selectedVenta.monto_pagado || 0) + montoAbonar;
+                const nuevoPagado = new Decimal(this.selectedVenta.monto_pagado || 0).plus(montoAbonar).toDecimalPlaces(2).toNumber();
                 const nuevoEstado = nuevoPagado >= this.selectedVenta.total ? 'PAGADO' : 'PENDIENTE';
 
                 await db.ventas.update(this.selectedVenta.id, {

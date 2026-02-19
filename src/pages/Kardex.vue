@@ -126,6 +126,7 @@ import { movimientosDAO } from '../db/movimientosDAO';
 import { productosDAO } from '../db/productosDAO';
 import { KardexService } from '../services/KardexService';
 import { Movimientos } from '../models/Movimientos';
+import Decimal from 'decimal.js';
 
 export default {
     name: 'PageKardex',
@@ -200,7 +201,10 @@ export default {
 
             try {
                 // 1. Actualizar Producto
-                const nuevoStock = Number(this.selectedProduct.cantidad) + Number(this.stockForm.cantidad);
+                const currentStock = new Decimal(this.selectedProduct.cantidad || 0);
+                const addStock = new Decimal(this.stockForm.cantidad);
+                const nuevoStock = currentStock.plus(addStock).toNumber();
+
                 await productosDAO.getInstance().update(this.selectedProduct.id, {
                     cantidad: nuevoStock
                 });
@@ -209,7 +213,7 @@ export default {
                 const movimiento = new Movimientos();
                 movimiento.producto_id = this.selectedProduct.id;
                 movimiento.tipo = 'ENTRADA';
-                movimiento.cantidad = Number(this.stockForm.cantidad);
+                movimiento.cantidad = addStock.toNumber();
                 movimiento.fecha = Date.now();
                 movimiento.referencia = 'Reabastecimiento desde Kardex';
                 movimiento.create_at = new Date();

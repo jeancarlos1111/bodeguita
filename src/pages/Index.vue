@@ -205,6 +205,7 @@ import { recommendationService } from '../services/RecommendationService';
 import { configuracionDAO } from '../db/configuracionDAO';
 import { clientesDAO } from '../db/clientesDAO';
 import { Clientes } from '../models/Clientes';
+import Decimal from 'decimal.js';
 
 export default {
   name: 'PageIndex',
@@ -288,32 +289,32 @@ export default {
         this.$q.loading.show();
         productosDAO.getInstance().getNombre(producto).then((result) => {
           this.$q.loading.hide();
-          const porcentaje = Number(result.porcentaje_ganancia || 0);
-          const ivaPorc = Number(result.porcentaje_iva || 0);
+          const porcentaje = new Decimal(result.porcentaje_ganancia || 0);
+          const ivaPorc = new Decimal(result.porcentaje_iva || 0);
+          const costo = new Decimal(result.costo || 0);
 
           // Precio Base (Costo + Ganancia)
-          const precioBaseUsd = Number(result.costo || 0) * (1 + (porcentaje / 100));
+          // precioBaseUsd = costo * (1 + (porcentaje / 100))
+          const precioBaseUsd = costo.mul(new Decimal(1).plus(porcentaje.div(100)));
 
           let precioFinalUsd = precioBaseUsd;
-          let montoIvaUsd = 0;
+          let montoIvaUsd = new Decimal(0);
 
           // Si 'Cobrar IVA' está activo y el producto tiene IVA definido
-          if (this.tributos.cobrar_iva && ivaPorc > 0) {
-            montoIvaUsd = precioBaseUsd * (ivaPorc / 100);
-            precioFinalUsd = precioBaseUsd + montoIvaUsd;
+          if (this.tributos.cobrar_iva && ivaPorc.gt(0)) {
+            montoIvaUsd = precioBaseUsd.mul(ivaPorc.div(100));
+            precioFinalUsd = precioBaseUsd.plus(montoIvaUsd);
           }
-          // Si NO está activo, asumimos que el precio de venta ya es final y no desglosamos (Fiscalmente Exento en práctica)
-          // O si el producto es exento (ivaPorc = 0)
 
-          const tasa = Number(this.valor_dolar);
-          const cantidad = Number(this.cantidad);
+          const tasa = new Decimal(this.valor_dolar || 0);
+          const cantidad = new Decimal(this.cantidad);
 
           // VALIDATION: Check Stock
           const cantidadEnCarrito = this.lista_compras
             .filter(item => item.id === result.id)
             .reduce((acc, item) => acc + item.cantidad, 0);
 
-          if ((cantidad + cantidadEnCarrito) > result.cantidad) {
+          if ((cantidad.plus(cantidadEnCarrito)).gt(result.cantidad)) {
             this.$q.loading.hide();
             this.$q.notify({
               type: 'negative',
@@ -322,34 +323,34 @@ export default {
             return;
           }
 
-          const costoTotalBs = (Number(result.costo || 0) * tasa * cantidad);
+          const costoTotalBs = costo.mul(tasa).mul(cantidad); // Costo unit USD * Tasa * Cantidad
 
-          const valor_unitario_bs = precioFinalUsd * tasa;
-          const monto_total_bs = valor_unitario_bs * cantidad;
+          const valor_unitario_bs = precioFinalUsd.mul(tasa);
+          const monto_total_bs = valor_unitario_bs.mul(cantidad);
 
           // Fiscal breakdowns per item (total line)
-          const base_linea_bs = (precioBaseUsd * tasa * cantidad);
-          const iva_linea_bs = (montoIvaUsd * tasa * cantidad);
+          const base_linea_bs = precioBaseUsd.mul(tasa).mul(cantidad);
+          const iva_linea_bs = montoIvaUsd.mul(tasa).mul(cantidad);
 
           this.lista_compras.push({
             id: result.id,
             producto: result.nombre,
-            valor_bs: monto_total_bs, // Precio Final Venta en Bs
-            valor_unitario_bs: valor_unitario_bs,
-            costo_total_bs: costoTotalBs,
-            costo_unitario_bs: (Number(result.costo || 0) * tasa),
-            cantidad: cantidad,
-            valor_dolar: tasa,
+            valor_bs: monto_total_bs.toDecimalPlaces(2).toNumber(), // Precio Final Venta en Bs
+            valor_unitario_bs: valor_unitario_bs.toDecimalPlaces(2).toNumber(),
+            costo_total_bs: costoTotalBs.toDecimalPlaces(6).toNumber(),
+            costo_unitario_bs: costo.mul(tasa).toDecimalPlaces(6).toNumber(),
+            cantidad: cantidad.toNumber(),
+            valor_dolar: tasa.toNumber(),
             existencia: result.cantidad,
 
             // Fiscal Data
-            es_exento: !this.tributos.cobrar_iva || ivaPorc === 0,
-            tasa_iva: this.tributos.cobrar_iva ? ivaPorc : 0,
-            monto_base_bs: base_linea_bs,
-            monto_iva_bs: iva_linea_bs
+            es_exento: !this.tributos.cobrar_iva || ivaPorc.eq(0),
+            tasa_iva: this.tributos.cobrar_iva ? ivaPorc.toNumber() : 0,
+            monto_base_bs: base_linea_bs.toDecimalPlaces(2).toNumber(),
+            monto_iva_bs: iva_linea_bs.toDecimalPlaces(2).toNumber()
           });
 
-          this.total = this.lista_compras.reduce((acc, el) => acc + el.valor_bs, 0);
+          this.total = this.lista_compras.reduce((acc, el) => new Decimal(acc).plus(el.valor_bs).toNumber(), 0);
           this.totalConIGTF = this.total; // Reset logic handles updates
 
           this.producto = null;
@@ -369,8 +370,8 @@ export default {
       // Si pago en Divisas, aplicar 3% sobre el monto equivalente en Bs o sobre el monto $ convertido
       // Asumimos pago total en divisa
       if (this.tributos.cobrar_igtf) {
-        this.montoIGTF = this.total * 0.03;
-        this.totalConIGTF = this.total + this.montoIGTF;
+        this.montoIGTF = new Decimal(this.total).mul(0.03).toDecimalPlaces(2).toNumber();
+        this.totalConIGTF = new Decimal(this.total).plus(this.montoIGTF).toNumber();
       }
     },
     confirmAndSave() {
@@ -457,29 +458,29 @@ export default {
       this.form.metodo_pago = this.form.metodo_pago; // Already set
 
       // Fiscal Summaries
-      let monto_exento = 0;
-      let monto_base = 0;
-      let monto_iva = 0;
+      let monto_exento = new Decimal(0);
+      let monto_base = new Decimal(0);
+      let monto_iva = new Decimal(0);
 
       this.lista_compras.forEach(item => {
         if (item.es_exento) {
-          monto_exento += item.valor_bs;
+          monto_exento = monto_exento.plus(item.valor_bs);
         } else {
-          monto_base += item.monto_base_bs;
-          monto_iva += item.monto_iva_bs;
+          monto_base = monto_base.plus(item.monto_base_bs);
+          monto_iva = monto_iva.plus(item.monto_iva_bs);
         }
       });
 
-      this.form.monto_exento = monto_exento;
-      this.form.monto_base = monto_base;
-      this.form.monto_iva = monto_iva;
+      this.form.monto_exento = monto_exento.toDecimalPlaces(2).toNumber();
+      this.form.monto_base = monto_base.toDecimalPlaces(2).toNumber();
+      this.form.monto_iva = monto_iva.toDecimalPlaces(2).toNumber();
       this.form.tasa_iva = 16; // Standard calc reference
 
       this.form.monto_igtf = this.montoIGTF;
       this.form.tasa_dolar = this.valor_dolar;
       // If paid in dollars, we estimate amount in USD
       if (['Efectivo $', 'Zelle'].includes(this.form.metodo_pago)) {
-        this.form.monto_dolar = this.total / this.valor_dolar;
+        this.form.monto_dolar = new Decimal(this.total).div(this.valor_dolar).toDecimalPlaces(2).toNumber();
       } else {
         this.form.monto_dolar = 0;
       }
@@ -549,7 +550,7 @@ export default {
       this.lista_compras.splice(index, 1);
 
       // Re-sum total from remaining items to be safe and accurate
-      this.total = this.lista_compras.reduce((acc, el) => acc + el.valor_bs, 0);
+      this.total = this.lista_compras.reduce((acc, el) => new Decimal(acc).plus(el.valor_bs).toNumber(), 0);
 
       // Recalc IGTF if needed
       if (['Efectivo $', 'Zelle'].includes(this.form.metodo_pago) && this.tributos.cobrar_igtf) {

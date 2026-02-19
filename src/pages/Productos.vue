@@ -270,6 +270,7 @@ import { valor_dolarDAO } from '../db/valor_dolarDAO';
 import { Productos } from '../models/Productos';
 import { movimientosDAO } from '../db/movimientosDAO';
 import { Movimientos } from '../models/Movimientos';
+import Decimal from 'decimal.js';
 export default {
   name: 'Productos',
   data() {
@@ -396,29 +397,33 @@ export default {
     },
     calcularPrecioVenta(costo, porcentajeGanancia, porcentajeIva) {
       if (!costo) return 0;
-      const porcentaje = porcentajeGanancia || 0;
-      const iva = porcentajeIva || 0;
+      const porcentaje = new Decimal(porcentajeGanancia || 0);
+      const iva = new Decimal(porcentajeIva || 0);
+      const costoDecimal = new Decimal(costo);
+
       // Precio sin IVA: Costo + Ganancia
-      const precioSinIva = costo + (costo * porcentaje / 100);
+      const precioSinIva = costoDecimal.plus(costoDecimal.mul(porcentaje).div(100));
       // IVA sobre el precio sin IVA
-      const montoIva = precioSinIva * (iva / 100);
+      const montoIva = precioSinIva.mul(iva).div(100);
       // Precio final con IVA
-      return parseFloat((precioSinIva + montoIva).toFixed(2));
+      return precioSinIva.plus(montoIva).toDecimalPlaces(2).toNumber();
     },
     calcularPrecioSinIva(costo, porcentajeGanancia) {
       if (!costo) return 0;
-      const porcentaje = porcentajeGanancia || 0;
-      return parseFloat((costo + (costo * porcentaje / 100)).toFixed(2));
+      const porcentaje = new Decimal(porcentajeGanancia || 0);
+      const costoDecimal = new Decimal(costo);
+      return costoDecimal.plus(costoDecimal.mul(porcentaje).div(100)).toDecimalPlaces(2).toNumber();
     },
     calcularIva(precioSinIva, porcentajeIva) {
       if (!precioSinIva) return 0;
-      const iva = porcentajeIva || 0;
-      return parseFloat((precioSinIva * (iva / 100)).toFixed(2));
+      const precio = new Decimal(precioSinIva);
+      const iva = new Decimal(porcentajeIva || 0);
+      return precio.mul(iva).div(100).toDecimalPlaces(2).toNumber();
     },
     calcularGananciaUnitaria(producto) {
-      const costo = producto.costo || 0;
-      const porcentaje = producto.porcentaje_ganancia || 0;
-      return parseFloat((costo * porcentaje / 100).toFixed(2));
+      const costo = new Decimal(producto.costo || 0);
+      const porcentaje = new Decimal(producto.porcentaje_ganancia || 0);
+      return costo.mul(porcentaje).div(100).toDecimalPlaces(2).toNumber();
     },
     dialogoNuevoValor() {
       this.m_nuevo_producto = true;
@@ -459,7 +464,7 @@ export default {
       } else {
         // Si se activa, convertir valores existentes a Bs si hay valor_dolar
         if (this.valor_dolar && this.form.costo) {
-          this.form.costo_bs = this.form.costo * this.valor_dolar;
+          this.form.costo_bs = new Decimal(this.form.costo).mul(this.valor_dolar).toDecimalPlaces(2).toNumber();
         }
       }
     },
@@ -470,7 +475,7 @@ export default {
       } else {
         // Si se activa, convertir valores existentes a Bs si hay valor_dolar
         if (this.valor_dolar && this.form_editar.costo) {
-          this.form_editar.costo_bs = this.form_editar.costo * this.valor_dolar;
+          this.form_editar.costo_bs = new Decimal(this.form_editar.costo).mul(this.valor_dolar).toDecimalPlaces(2).toNumber();
         }
       }
     },
@@ -802,7 +807,7 @@ export default {
       // Si se ingresó en Bs, convertir a USD
       if (this.ingresarEnBs && this.valor_dolar) {
         if (this.form.costo_bs) {
-          this.form.costo = parseFloat((parseFloat(this.form.costo_bs) / parseFloat(this.valor_dolar)).toFixed(2));
+          this.form.costo = new Decimal(this.form.costo_bs).div(this.valor_dolar).toDecimalPlaces(6).toNumber();
         } else {
           this.form.costo = 0;
         }
@@ -818,7 +823,7 @@ export default {
       // Eliminar campos temporales antes de guardar
       const formToSave = { ...this.form };
       delete formToSave.valor_bs;
-      delete formToSave.costo_bs;
+      // delete formToSave.costo_bs; // MANTENER costo_bs para edición futura
 
       productosDAO.getInstance().save(formToSave).then(async (id) => {
         // Registrar Movimiento Inicial (ENTRADA)
@@ -855,13 +860,21 @@ export default {
     },
     editarProducto(producto) {
       this.form_editar = { ...producto };
+
+      // Detectar si fue guardado en Bs
+      if (this.form_editar.costo_bs && this.form_editar.costo_bs > 0) {
+        this.ingresarEnBsEditar = true;
+      } else {
+        this.ingresarEnBsEditar = false;
+        this.$set(this.form_editar, 'costo_bs', null);
+      }
+
       // Asegurar que porcentaje_iva exista (para productos antiguos sin IVA)
       if (this.form_editar.porcentaje_iva === undefined || this.form_editar.porcentaje_iva === null) {
         this.$set(this.form_editar, 'porcentaje_iva', 0);
       }
       this.$set(this.form_editar, 'valor_bs', null);
-      this.$set(this.form_editar, 'costo_bs', null);
-      this.ingresarEnBsEditar = false;
+
       this.m_editar_producto = true;
     },
     async actualizarProducto(id) {
@@ -883,7 +896,7 @@ export default {
       // Si se ingresó en Bs, convertir a USD
       if (this.ingresarEnBsEditar && this.valor_dolar) {
         if (this.form_editar.costo_bs) {
-          this.form_editar.costo = parseFloat((parseFloat(this.form_editar.costo_bs) / parseFloat(this.valor_dolar)).toFixed(2));
+          this.form_editar.costo = new Decimal(this.form_editar.costo_bs).div(this.valor_dolar).toDecimalPlaces(6).toNumber();
         } else {
           this.form_editar.costo = 0;
         }
@@ -899,7 +912,7 @@ export default {
       // Eliminar campos temporales antes de guardar
       const formToSave = { ...this.form_editar };
       delete formToSave.valor_bs;
-      delete formToSave.costo_bs;
+      // delete formToSave.costo_bs; // MANTENER costo_bs para edición futura
 
       // Obtener producto anterior para calcular diferencia
       let diff = 0;

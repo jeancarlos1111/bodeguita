@@ -111,6 +111,8 @@ ChartJS.register(
  * @property {number} totalVentas
  */
 
+import Decimal from 'decimal.js';
+
 export default Vue.extend({
   name: "VentasPorProducto",
   data() {
@@ -216,20 +218,24 @@ export default Vue.extend({
             if (!productosMap[nombreProducto]) {
               productosMap[nombreProducto] = {
                 producto: nombreProducto,
-                cantidadTotal: 0,
-                totalVentas: 0
+                cantidadTotal: new Decimal(0),
+                totalVentas: new Decimal(0)
               };
             }
 
             // Sumar cantidad y total de ventas
-            productosMap[nombreProducto].cantidadTotal += Number(producto.cantidad || 0);
-            productosMap[nombreProducto].totalVentas += Number(producto.valor_bs || 0);
+            productosMap[nombreProducto].cantidadTotal = productosMap[nombreProducto].cantidadTotal.plus(producto.cantidad || 0);
+            productosMap[nombreProducto].totalVentas = productosMap[nombreProducto].totalVentas.plus(producto.valor_bs || 0);
           });
         }
       });
 
       // Convertir el mapa a array y ordenar por total de ventas (descendente)
-      this.datosProductos = Object.values(productosMap).sort(
+      this.datosProductos = Object.values(productosMap).map(item => ({
+        producto: item.producto,
+        cantidadTotal: item.cantidadTotal.toNumber(),
+        totalVentas: item.totalVentas.toDecimalPlaces(2).toNumber()
+      })).sort(
         (a, b) => b.totalVentas - a.totalVentas
       );
     },

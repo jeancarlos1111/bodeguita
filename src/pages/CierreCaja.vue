@@ -202,6 +202,7 @@ import { ventasDAO } from '../db/ventasDAO'
 import { valor_dolarDAO } from '../db/valor_dolarDAO'
 import { productosDAO } from '../db/productosDAO'
 import { configuracionDAO } from '../db/configuracionDAO'
+import Decimal from 'decimal.js';
 
 export default {
   name: 'CierreCaja',
@@ -229,24 +230,24 @@ export default {
       return this.tipoReporte === 'Z' ? 'REPORTE GLOBAL Z' : 'REPORTE X - CORTE';
     },
     totalVenta() {
-      return this.ventas.reduce((sum, venta) => sum + (venta.total || 0), 0);
+      return this.ventas.reduce((sum, venta) => new Decimal(sum).plus(venta.total || 0).toNumber(), 0);
     },
     totalCosto() {
       // Calcular costo total iterando sobre productos de cada venta
       return this.ventas.reduce((sumVentas, venta) => {
-        const costoVenta = venta.productos.reduce((sumProd, prod) => sumProd + (prod.costo_total_bs || 0), 0);
-        return sumVentas + costoVenta;
+        const costoVenta = venta.productos.reduce((sumProd, prod) => new Decimal(sumProd).plus(prod.costo_total_bs || 0), 0);
+        return new Decimal(sumVentas).plus(costoVenta).toNumber();
       }, 0);
     },
     totalGanancia() {
-      return this.totalVenta - this.totalCosto;
+      return new Decimal(this.totalVenta).minus(this.totalCosto).toNumber();
     },
     desglosePagos() {
       const desglose = {};
       this.ventas.forEach(venta => {
         const metodo = venta.metodo_pago || 'Desconocido';
         if (!desglose[metodo]) desglose[metodo] = 0;
-        desglose[metodo] += venta.total || 0;
+        desglose[metodo] = new Decimal(desglose[metodo]).plus(venta.total || 0).toNumber();
       });
       return desglose;
     },
@@ -265,19 +266,19 @@ export default {
       return date.formatDate(Date.now(), 'YYDDD');
     },
     fiscal() {
-      let exento = 0;
-      let base = 0;
-      let iva = 0;
-      let igtf = 0;
+      let exento = new Decimal(0);
+      let base = new Decimal(0);
+      let iva = new Decimal(0);
+      let igtf = new Decimal(0);
 
       this.ventas.forEach(venta => {
         // Use stored fiscal values if available (new logic)
         // Fallback to estimation if old record and config is active? No, just use 0 if not present.
 
-        exento += (venta.monto_exento || 0);
-        base += (venta.monto_base || 0);
-        iva += (venta.monto_iva || 0);
-        igtf += (venta.monto_igtf || 0);
+        exento = exento.plus(venta.monto_exento || 0);
+        base = base.plus(venta.monto_base || 0);
+        iva = iva.plus(venta.monto_iva || 0);
+        igtf = igtf.plus(venta.monto_igtf || 0);
 
         // Fallback for legacy data if taxes are enabled now but weren't before?
         // If config is enabled but sales have 0, they appear as exento essentially or 0 base.
@@ -290,18 +291,18 @@ export default {
       // The math: Total != Exento + Base + Iva + IGTF.
       // So `Resto = Total - (Exento + Base + Iva + IGTF)`. Classification? Untaxed/Exento.
 
-      const recorded = exento + base + iva + igtf;
-      const remainder = this.totalVenta - recorded;
+      const recorded = exento.plus(base).plus(iva).plus(igtf);
+      const remainder = new Decimal(this.totalVenta).minus(recorded);
 
-      if (remainder > 0.01) { // Floating point tolerance
-        exento += remainder;
+      if (remainder.gt(0.01)) { // Floating point tolerance check is still valid conceptually but we use Decimal
+        exento = exento.plus(remainder);
       }
 
       return {
-        exento: exento,
-        base: base,
-        iva: iva,
-        igtf: igtf
+        exento: exento.toNumber(),
+        base: base.toNumber(),
+        iva: iva.toNumber(),
+        igtf: igtf.toNumber()
       }
     }
   },

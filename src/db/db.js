@@ -78,6 +78,15 @@ db.version(11).stores({
     clientes: `++id, &cedula, nombre, telefono, create_at, update_at`
 });
 
+db.version(12).stores({
+    valores_dolar: `++id, valor, create_at, update_at`,
+    productos: `++id, &nombre, valor, create_at, update_at, cantidad, porcentaje_ganancia, costo, porcentaje_iva, codigo_barras`,
+    ventas: `++id, total, *productos, create_at, update_at, metodo_pago, numero_factura, cliente_id, estado, monto_pagado, monto_exento, monto_base, monto_iva, tasa_iva, monto_igtf, tasa_dolar, monto_dolar`,
+    movimientos: `++id, producto_id, tipo, cantidad, fecha, referencia, [producto_id+fecha]`,
+    configuracion: `&key, value`,
+    clientes: `++id, &cedula, nombre, telefono, create_at, update_at`
+});
+
 db.open().catch (function (err) {
     console.error('Fallo al abrir la base de datos: ' + (err.stack || err));
 });

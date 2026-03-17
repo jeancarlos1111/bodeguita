@@ -154,6 +154,21 @@
         <q-card-section>
           <div class="q-gutter-md">
             <q-input v-model="form.nombre" label="Nombre" />
+            <!-- Código de Barras -->
+            <div class="row items-center q-gutter-sm">
+              <div class="col">
+                <q-input v-model="form.codigo_barras" label="Código de Barras / QR"
+                  hint="Opcional. Escanea o escríbelo manualmente."
+                  filled dense clearable>
+                  <template v-slot:prepend>
+                    <q-icon name="qr_code" />
+                  </template>
+                </q-input>
+              </div>
+              <div class="col-auto q-pt-md">
+                <barcode-scanner @scanned="form.codigo_barras = $event" mode="single" />
+              </div>
+            </div>
             <q-toggle v-model="ingresarEnBs"
               :label="`Ingresar valores en Bolívares (Bs)${valor_dolar ? ' - Dólar: Bs ' + new Intl.NumberFormat('es-VE').format(valor_dolar) : ' - Sin valor del dólar'}`"
               color="primary" :disable="!valor_dolar" @input="toggleMoneda" />
@@ -200,6 +215,21 @@
         <q-card-section>
           <div class="q-gutter-md">
             <q-input v-model="form_editar.nombre" label="Nombre" />
+            <!-- Código de Barras -->
+            <div class="row items-center q-gutter-sm">
+              <div class="col">
+                <q-input v-model="form_editar.codigo_barras" label="Código de Barras / QR"
+                  hint="Opcional. Escanea o escríbelo manualmente."
+                  filled dense clearable>
+                  <template v-slot:prepend>
+                    <q-icon name="qr_code" />
+                  </template>
+                </q-input>
+              </div>
+              <div class="col-auto q-pt-md">
+                <barcode-scanner @scanned="form_editar.codigo_barras = $event" mode="single" />
+              </div>
+            </div>
             <q-toggle v-model="ingresarEnBsEditar"
               :label="`Ingresar valores en Bolívares (Bs)${valor_dolar ? ' - Dólar: Bs ' + new Intl.NumberFormat('es-VE').format(valor_dolar) : ' - Sin valor del dólar'}`"
               color="primary" :disable="!valor_dolar" @input="toggleMonedaEditar" />
@@ -271,8 +301,10 @@ import { Productos } from '../models/Productos';
 import { movimientosDAO } from '../db/movimientosDAO';
 import { Movimientos } from '../models/Movimientos';
 import Decimal from 'decimal.js';
+import BarcodeScanner from '../components/BarcodeScanner.vue';
 export default {
   name: 'Productos',
+  components: { BarcodeScanner },
   data() {
     return {
       form: new Productos(),

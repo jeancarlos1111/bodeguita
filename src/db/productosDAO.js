@@ -29,4 +29,8 @@ export class productosDAO {
     getNombre(nombre) {
     	return db.productos.get({nombre: nombre});
     }
+
+    getByBarcode(codigo) {
+        return db.productos.where('codigo_barras').equals(codigo).first();
+    }
 }

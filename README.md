@@ -43,17 +43,22 @@
 ### Nuevas Funcionalidades (v2.1+)
 
 #### 🧠 Sistema de Recomendaciones (WASM + Rust)
+
 Implementación de lógica de alto rendimiento usando **Rust** compilado a **WebAssembly**.
+
 - **Motor de Inferencia**: Detecta patrones de compra (matriz de co-ocurrencia) localmente en el dispositivo.
 - **Detección de Productos Estancados**: Algoritmo inteligente que sugiere productos con inventario inmovilizado para rotación.
 - **Web Workers**: Procesamiento en segundo plano para no bloquear la interfaz de usuario.
 
 #### 📦 Kardex Inteligente
+
 Nueva gestión avanzada de inventario:
+
 - **Trazabilidad Total**: Registro detallado de `MOVIMIENTOS` (entradas, salidas, ajustes, ventas).
 - **Control de Stock**: Auditoría precisa de cambios en el inventario en tiempo real.
 
 #### 💰 Refactorización de Precios (Costo vs Valor)
+
 - Migración completa del cálculo de ganancias basado en **Costo de Adquisición**.
 - Mayor precisión en reportes de margen de ganancia y rentabilidad.
 
@@ -62,30 +67,36 @@ Nueva gestión avanzada de inventario:
 ## Stack Tecnológico
 
 ### Frontend Framework
+
 - **Quasar Framework v1.22.1**: Framework Vue.js para desarrollo multiplataforma
 - **Vue.js 2.x**: Framework JavaScript progresivo
 - **Vue Router**: Enrutamiento (modo history)
 
 ### Base de Datos
+
 - **Dexie.js v3.0.3**: Wrapper para IndexedDB (base de datos del navegador)
 
 ### UI/UX
+
 - **Quasar Components**: Componentes Material Design
 - **Material Icons**: Iconografía
 - **Roboto Font**: Tipografía
 
 ### Utilidades
+
 - **Axios v0.21.1**: Cliente HTTP
 - **Vue-i18n v8.0.0**: Internacionalización (configurado en español)
 - **v-money v0.8.1**: Formateo de moneda
 
 ### Desarrollo
+
 - **@quasar/app v2.4.3**: CLI de Quasar
 - **Webpack**: Bundler de módulos
 - **Babel**: Transpilador JavaScript
 - **Workbox**: Service Worker para PWA
 
 ### Plataformas Adicionales
+
 - **Electron v13.0.0**: Aplicación de escritorio
 - **Cordova**: Aplicación móvil nativa
 
@@ -295,6 +306,7 @@ npm run deploy:gh
 ```
 
 Este script:
+
 1. Detecta automáticamente el nombre del repositorio
 2. Ajusta el `publicPath` en `quasar.conf.js`
 3. Construye la aplicación en modo PWA
@@ -302,6 +314,7 @@ Este script:
 5. Despliega a la rama `gh-pages`
 
 **Requisitos para despliegue:**
+
 - Token de GitHub en `.github-token` o variable de entorno `GITHUB_TOKEN`
 - Repositorio remoto configurado (`git remote add origin <url>`)
 
@@ -367,6 +380,7 @@ La aplicación utiliza **Dexie.js** como wrapper sobre IndexedDB. Base de datos:
 ```
 
 **Cálculos:**
+
 - Precio de Venta = `valor + (valor * porcentaje_ganancia / 100)`
 - Ganancia/Unidad = `Precio de Venta - costo`
 
@@ -411,6 +425,7 @@ quasar dev
 ```
 
 Esto iniciará:
+
 - Servidor de desarrollo en `http://localhost:8080`
 - Hot-reload automático
 - Source maps para debugging
@@ -472,6 +487,7 @@ El proyecto incorpora un módulo de **Rust** compilado a WebAssembly para tareas
 ### Ciclo de Trabajo con Rust
 
 1. **Instalar Rust y wasm-pack**:
+
    ```bash
    curl https://sh.rustup.rs -sSf | sh
    cargo install wasm-pack
@@ -479,9 +495,11 @@ El proyecto incorpora un módulo de **Rust** compilado a WebAssembly para tareas
 
 2. **Compilar el Módulo**:
    El proyecto incluye un script en `package.json` para facilitar esto:
+
    ```bash
    npm run build:wasm
    ```
+
    *Este comando compila el código Rust en `src-wasm` y coloca los binarios resultantes en `src-wasm/pkg`, listos para ser importados por el Web Worker.*
 
 3. **Integración**:
@@ -500,6 +518,7 @@ npm run deploy:gh
 ```
 
 **El script automáticamente:**
+
 1. Detecta el nombre del repositorio
 2. Ajusta el `publicPath` según el repositorio
 3. Construye la aplicación
@@ -507,11 +526,13 @@ npm run deploy:gh
 5. Despliega a la rama `gh-pages`
 
 **Configuración manual de GitHub Pages:**
+
 1. Ir a Settings → Pages
 2. Source: Branch `gh-pages` → `/ (root)`
 3. Save
 
 **URLs esperadas:**
+
 - Repo normal: `https://usuario.github.io/bodeguita/`
 - Repo usuario: `https://usuario.github.io/` (si el repo es `usuario.github.io`)
 
@@ -555,6 +576,7 @@ quasar build -m cordova -T android
 - Puede instalarse en dispositivos
 
 **Build:**
+
 ```bash
 quasar build -m pwa
 ```
@@ -568,6 +590,7 @@ quasar build -m pwa
 - Builders: packager, builder
 
 **Build:**
+
 ```bash
 quasar build -m electron
 ```
@@ -581,8 +604,9 @@ quasar build -m electron
 - Plugins de Cordova disponibles
 
 **Build:**
+
 ```bash
-quasar build -m cordova -T android
+quasar build -m cordova -T android --debug
 ```
 
 **Output:** `dist/cordova/`
@@ -619,12 +643,15 @@ El Service Worker se genera automáticamente en el build de producción usando W
 La aplicación usa versionado de esquema con Dexie:
 
 ### Versión 1 → 2
+
 - Agregado campo `cantidad` a productos
 
 ### Versión 2 → 3
+
 - Agregado campo `porcentaje_ganancia` a productos
 
 ### Versión 3 → 4
+
 - Agregado campo `costo` a productos
 
 **Nota:** Las migraciones son automáticas cuando se actualiza la versión del esquema.
@@ -638,12 +665,14 @@ La aplicación usa versionado de esquema con Dexie:
 **Problema**: Node.js 17+ cambió el algoritmo de hash de OpenSSL.
 
 **Solución 1**: Usar Node 16 LTS
+
 ```bash
 nvm install 16
 nvm use 16
 ```
 
 **Solución 2**: Usar flag legacy
+
 ```bash
 NODE_OPTIONS=--openssl-legacy-provider quasar build
 ```
@@ -695,7 +724,7 @@ Este proyecto es privado.
 
 ## Autores
 
-- **Jean Zamora** - jeancarloscuatro1@gmail.com
+- **Jean Zamora** - <jeancarloscuatro1@gmail.com>
 - **Joyner Olivares**
 
 ---

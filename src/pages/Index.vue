@@ -5,7 +5,7 @@
     <q-card class="rounded-card q-mb-md shadow-1 bg-white">
       <q-card-section>
         <div class="row q-col-gutter-sm">
-          <div class="col-12 col-sm-8">
+          <div class="col-12 col-sm-7">
             <q-select filled v-model="producto" use-input hide-selected fill-input input-debounce="0" :options="options"
               @filter="filterFn" label="Buscar Producto" color="primary" behavior="menu" class="rounded-borders">
               <template v-slot:no-option>
@@ -18,11 +18,19 @@
               </template>
             </q-select>
           </div>
-          <div class="col-6 col-sm-2">
+          <!-- Botón Escanear Barras/QR -->
+          <div class="col-auto flex items-center" style="padding-top: 4px">
+            <barcode-scanner
+              color="indigo"
+              mode="single"
+              @scanned="escanearEnCaja"
+            />
+          </div>
+          <div class="col-4 col-sm-2">
             <q-input filled v-model.number="cantidad" type="number" label="Cant." color="primary" min="1"
               class="rounded-borders" />
           </div>
-          <div class="col-6 col-sm-2">
+          <div class="col col-sm-2">
             <q-btn color="primary" icon="add_shopping_cart" class="full-width full-height shadow-0 rounded-borders"
               @click="agregarListaCompra" label="Agregar" />
           </div>
@@ -206,9 +214,11 @@ import { configuracionDAO } from '../db/configuracionDAO';
 import { clientesDAO } from '../db/clientesDAO';
 import { Clientes } from '../models/Clientes';
 import Decimal from 'decimal.js';
+import BarcodeScanner from '../components/BarcodeScanner.vue';
 
 export default {
   name: 'PageIndex',
+  components: { BarcodeScanner },
   data() {
     return {
       valor_dolar: null,
@@ -602,6 +612,39 @@ export default {
         this.producto = this.recommendedProduct.nombre;
         this.agregarListaCompra();
         this.recommendedProduct = null;
+      }
+    },
+
+    // Busca un producto por código de barras y lo agrega al carrito
+    async escanearEnCaja(codigo) {
+      if (!codigo) return;
+      this.$q.loading.show({ message: 'Buscando producto...' });
+      try {
+        const result = await productosDAO.getInstance().getByBarcode(codigo);
+        if (result) {
+          this.producto = result.nombre;
+          await this.agregarListaCompra();
+          this.$q.notify({
+            type: 'positive',
+            message: `¡${result.nombre} agregado al carrito!`,
+            icon: 'qr_code_scanner',
+            position: 'top-right'
+          });
+        } else {
+          this.$q.notify({
+            type: 'warning',
+            message: `Código no encontrado: ${codigo}`,
+            caption: 'Asegúrate de asignar el código de barras al producto en la sección Productos',
+            icon: 'qr_code_scanner',
+            position: 'top',
+            timeout: 5000
+          });
+        }
+      } catch (e) {
+        console.error('Error escaneando:', e);
+        this.$q.notify({ type: 'negative', message: 'Error al buscar el producto escaneado' });
+      } finally {
+        this.$q.loading.hide();
       }
     }
   }

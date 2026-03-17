@@ -1,6 +1,6 @@
 {
   "name": "bodeguita",
-  "version": "2.2.5",
+  "version": "2.3.0",
   "description": "Aplicación para la administración de una bodega",
   "productName": "Bodeguita",
   "author": "Jean Zamora jeancarloscuatro1@gmail.com>",
@@ -20,6 +20,7 @@
     "core-js": "^3.6.5",
     "decimal.js": "^10.6.0",
     "dexie": "^3.0.3",
+    "html5-qrcode": "^2.3.8",
     "quasar": "^1.22.1",
     "scrape-it": "^5.3.1",
     "v-money": "^0.8.1",

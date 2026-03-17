@@ -6,8 +6,9 @@
       <q-card-section>
         <div class="row q-col-gutter-sm">
           <div class="col-12 col-sm-7">
-            <q-select filled v-model="producto" use-input hide-selected fill-input input-debounce="0" :options="options"
-              @filter="filterFn" label="Buscar Producto" color="primary" behavior="menu" class="rounded-borders">
+            <q-select filled autofocus v-model="producto" use-input hide-selected fill-input input-debounce="0"
+              :options="options" @filter="filterFn" label="Buscar Producto / Código de barras" color="primary"
+              behavior="menu" class="rounded-borders" @keyup.enter.native="onSelectEnter">
               <template v-slot:no-option>
                 <q-item>
                   <q-item-section class="text-grey">Sin resultados</q-item-section>
@@ -18,13 +19,9 @@
               </template>
             </q-select>
           </div>
-          <!-- Botón Escanear Barras/QR -->
+          <!-- Botón Escanear Barras/QR (Cámara) -->
           <div class="col-auto flex items-center" style="padding-top: 4px">
-            <barcode-scanner
-              color="indigo"
-              mode="single"
-              @scanned="escanearEnCaja"
-            />
+            <barcode-scanner color="indigo" mode="single" @scanned="escanearEnCaja" />
           </div>
           <div class="col-4 col-sm-2">
             <q-input filled v-model.number="cantidad" type="number" label="Cant." color="primary" min="1"
@@ -245,7 +242,12 @@ export default {
         cobrar_igtf: false
       },
       montoIGTF: 0,
-      totalConIGTF: 0
+      totalConIGTF: 0,
+
+      // Listener global de lector de código de barras externo
+      _barcodeBuffer: '',
+      _barcodeTimer: null,
+      _barcodeKeyHandler: null
     }
   },
   computed: {
@@ -273,6 +275,10 @@ export default {
     this.getDolar();
     this.loadConfig();
     recommendationService.init();
+    this.initBarcodeListener();
+  },
+  beforeDestroy() {
+    this.destroyBarcodeListener();
   },
   methods: {
     async loadConfig() {
@@ -615,37 +621,104 @@ export default {
       }
     },
 
-    // Busca un producto por código de barras y lo agrega al carrito
+    // Busca un producto por código de barras (escáner de cámara) y lo agrega al carrito
     async escanearEnCaja(codigo) {
+      await this.procesarCodigoBarras(codigo);
+    },
+
+    // Enter en el q-select: si hay texto pero no hay opción seleccionada, busca como código de barras
+    async onSelectEnter() {
+      // Si ya hay un producto seleccionado de la lista, dejarlo funcionar normalmente
+      if (this.producto && this.stringOptions.includes(this.producto)) return;
+      const codigo = (this.producto || '').trim();
       if (!codigo) return;
-      this.$q.loading.show({ message: 'Buscando producto...' });
+      this.producto = null;
+      await this.procesarCodigoBarras(codigo);
+    },
+
+    // Procesa un código de barras leído (desde q-select, cámara o listener global)
+    async procesarCodigoBarras(codigo) {
+      if (!codigo) return;
       try {
         const result = await productosDAO.getInstance().getByBarcode(codigo);
         if (result) {
           this.producto = result.nombre;
-          await this.agregarListaCompra();
           this.$q.notify({
             type: 'positive',
-            message: `¡${result.nombre} agregado al carrito!`,
+            message: `✅ ${result.nombre} agregado al carrito`,
             icon: 'qr_code_scanner',
-            position: 'top-right'
+            position: 'top-right',
+            timeout: 2500
           });
+          await this.agregarListaCompra();
         } else {
           this.$q.notify({
             type: 'warning',
             message: `Código no encontrado: ${codigo}`,
-            caption: 'Asegúrate de asignar el código de barras al producto en la sección Productos',
+            caption: 'Verifica que el producto tenga asignado este código de barras',
             icon: 'qr_code_scanner',
             position: 'top',
             timeout: 5000
           });
         }
       } catch (e) {
-        console.error('Error escaneando:', e);
-        this.$q.notify({ type: 'negative', message: 'Error al buscar el producto escaneado' });
-      } finally {
-        this.$q.loading.hide();
+        console.error('Error procesando código de barras:', e);
+        this.$q.notify({ type: 'negative', message: 'Error al buscar el código escaneado' });
       }
+    },
+
+    // Listener global de teclado para detectar entrada rápida del lector externo
+    initBarcodeListener() {
+      // Los lectores de código de barras emiten todos los caracteres en ráfagas muy rápidas (<50ms entre chars)
+      // y terminan con Enter (keyCode 13). Detectamos ese patrón.
+      const BARCODE_MIN_LENGTH = 4;   // mínimo de caracteres para considerar un código
+      const BARCODE_MAX_DELAY = 80;   // ms máximo entre caracteres del lector
+
+      this._barcodeBuffer = '';
+      this._barcodeTimer = null;
+
+      this._barcodeKeyHandler = (e) => {
+        // Ignorar si hay un diálogo de pago abierto
+        if (this.confirmPaymentDialog || this.clienteDialog) return;
+
+        // Ignorar modificadores de teclado (Ctrl, Alt, ...)
+        if (e.ctrlKey || e.altKey || e.metaKey) return;
+
+        if (e.key === 'Enter') {
+          // Enter recibido: procesar el buffer si tiene contenido válido
+          if (this._barcodeBuffer.length >= BARCODE_MIN_LENGTH) {
+            const codigo = this._barcodeBuffer;
+            this._barcodeBuffer = '';
+            clearTimeout(this._barcodeTimer);
+            this.procesarCodigoBarras(codigo);
+          } else {
+            this._barcodeBuffer = '';
+          }
+          return;
+        }
+
+        // Solo acumular caracteres imprimibles de un solo carácter
+        if (e.key.length === 1) {
+          this._barcodeBuffer += e.key;
+
+          // Reiniciar timer: si pasan más de BARCODE_MAX_DELAY ms sin Enter,
+          // asumir entrada manual → no procesar automáticamente
+          clearTimeout(this._barcodeTimer);
+          this._barcodeTimer = setTimeout(() => {
+            this._barcodeBuffer = '';
+          }, BARCODE_MAX_DELAY);
+        }
+      };
+
+      window.addEventListener('keydown', this._barcodeKeyHandler);
+    },
+
+    destroyBarcodeListener() {
+      if (this._barcodeKeyHandler) {
+        window.removeEventListener('keydown', this._barcodeKeyHandler);
+        this._barcodeKeyHandler = null;
+      }
+      clearTimeout(this._barcodeTimer);
     }
   }
 }

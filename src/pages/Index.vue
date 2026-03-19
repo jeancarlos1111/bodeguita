@@ -6,9 +6,9 @@
       <q-card-section>
         <div class="row q-col-gutter-sm">
           <div class="col-12 col-sm-7">
-            <q-select filled autofocus v-model="producto" use-input hide-selected fill-input input-debounce="0"
+            <q-select ref="productoSelect" filled autofocus v-model="producto" use-input hide-selected fill-input input-debounce="0"
               :options="options" @filter="filterFn" label="Buscar Producto / Código de barras" color="primary"
-              behavior="menu" class="rounded-borders" @keyup.enter.native="onSelectEnter">
+              behavior="menu" class="rounded-borders" @new-value="onNewValue">
               <template v-slot:no-option>
                 <q-item>
                   <q-item-section class="text-grey">Sin resultados</q-item-section>
@@ -226,6 +226,7 @@ export default {
       producto: null,
       options: [],
       stringOptions: [],
+      barcodeMap: {},   // { codigo_barras: nombre_producto }
       recommendedProduct: null,
       confirmPaymentDialog: false,
       paymentOptions: ['Efectivo Bs', 'Efectivo $', 'Pago Móvil', 'Punto de Venta', 'Zelle', 'Fiado'],
@@ -294,7 +295,14 @@ export default {
       return new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount || 0);
     },
     getProdutos() {
-      productosDAO.getInstance().get().then(result => { result.forEach(element => this.stringOptions.push(element.nombre)) });
+      productosDAO.getInstance().get().then(result => {
+        result.forEach(element => {
+          this.stringOptions.push(element.nombre);
+          if (element.codigo_barras) {
+            this.barcodeMap[element.codigo_barras.trim()] = element.nombre;
+          }
+        });
+      });
     },
     getDolar() {
       valor_dolarDAO.getInstance().getUltimo().then(result => { this.valor_dolar = result.valor_dolar });
@@ -371,6 +379,12 @@ export default {
 
           this.producto = null;
           this.cantidad = 1;
+          // Limpiar también el texto interno del input del q-select
+          this.$nextTick(() => {
+            if (this.$refs.productoSelect) {
+              this.$refs.productoSelect.updateInputValue('');
+            }
+          });
 
           this.checkRecommendation(result.id);
         });
@@ -582,8 +596,19 @@ export default {
       }
 
       update(() => {
-        const needle = val.toLowerCase()
-        this.options = this.stringOptions.filter(v => v.toLowerCase().indexOf(needle) > -1)
+        const needle = val.toLowerCase();
+
+        // Buscar por nombre
+        const byName = this.stringOptions.filter(v => v.toLowerCase().indexOf(needle) > -1);
+
+        // Buscar por código de barras: si el valor coincide exacta o parcialmente con algún código,
+        // incluir el nombre del producto (si no está ya en los resultados por nombre)
+        const byBarcode = Object.entries(this.barcodeMap)
+          .filter(([code]) => code.toLowerCase().indexOf(needle) > -1)
+          .map(([, nombre]) => nombre)
+          .filter(nombre => !byName.includes(nombre));
+
+        this.options = [...byName, ...byBarcode];
       })
     },
     calcularPrecioUSD(valorBs, valorDolar) {
@@ -626,13 +651,14 @@ export default {
       await this.procesarCodigoBarras(codigo);
     },
 
-    // Enter en el q-select: si hay texto pero no hay opción seleccionada, busca como código de barras
-    async onSelectEnter() {
-      // Si ya hay un producto seleccionado de la lista, dejarlo funcionar normalmente
-      if (this.producto && this.stringOptions.includes(this.producto)) return;
-      const codigo = (this.producto || '').trim();
+
+    // Se dispara cuando el usuario escribe algo que no coincide con ninguna opción
+    // (caso típico del escáner externo que llena el campo y luego manda Enter)
+    async onNewValue(val, done) {
+      // Cerrar el menú del q-select sin seleccionar nada
+      done(null);
+      const codigo = (val || '').trim();
       if (!codigo) return;
-      this.producto = null;
       await this.procesarCodigoBarras(codigo);
     },
 
@@ -683,6 +709,10 @@ export default {
 
         // Ignorar modificadores de teclado (Ctrl, Alt, ...)
         if (e.ctrlKey || e.altKey || e.metaKey) return;
+
+        // Si el q-select de producto tiene el foco, dejar que @new-value lo maneje
+        const selectEl = this.$refs.productoSelect && this.$refs.productoSelect.$el;
+        if (selectEl && selectEl.contains(document.activeElement)) return;
 
         if (e.key === 'Enter') {
           // Enter recibido: procesar el buffer si tiene contenido válido

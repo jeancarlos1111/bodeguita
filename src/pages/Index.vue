@@ -6,9 +6,9 @@
       <q-card-section>
         <div class="row q-col-gutter-sm">
           <div class="col-12 col-sm-7">
-            <q-select ref="productoSelect" filled autofocus v-model="producto" use-input hide-selected fill-input input-debounce="0"
-              :options="options" @filter="filterFn" label="Buscar Producto / Código de barras" color="primary"
-              behavior="menu" class="rounded-borders" @new-value="onNewValue">
+            <q-select ref="productoSelect" filled autofocus v-model="producto" use-input hide-selected fill-input
+              input-debounce="0" :options="options" @filter="filterFn" label="Buscar Producto / Código de barras"
+              color="primary" behavior="menu" class="rounded-borders" @new-value="onNewValue">
               <template v-slot:no-option>
                 <q-item>
                   <q-item-section class="text-grey">Sin resultados</q-item-section>
@@ -43,7 +43,7 @@
       </div>
 
       <div class="row q-col-gutter-sm">
-        <div v-for="(item, index) in lista_compras" :key="index" class="col-12 col-md-6">
+        <div v-for="(item, index) in lista_compras" :key="item.id" class="col-12 col-md-6">
           <q-card class="rounded-card shadow-1">
             <q-item class="q-py-md">
               <q-item-section avatar>
@@ -52,9 +52,7 @@
 
               <q-item-section>
                 <q-item-label class="text-weight-bold text-dark">{{ item.producto }}</q-item-label>
-                <q-item-label caption>
-                  Cant: {{ item.cantidad }} | Stock: {{ item.existencia }}
-                </q-item-label>
+                <q-item-label caption>Stock: {{ item.existencia }}</q-item-label>
               </q-item-section>
 
               <q-item-section side class="text-right">
@@ -67,7 +65,17 @@
               </q-item-section>
 
               <q-item-section side>
-                <q-btn flat round color="negative" icon="delete_outline" @click="eliminarProductoLista(index)" />
+                <div class="row items-center q-gutter-xs no-wrap">
+                  <q-btn flat round dense color="negative" icon="remove" size="sm"
+                    @click="cambiarCantidadItem(index, -1)" />
+                  <div class="text-weight-bold text-dark" style="min-width: 24px; text-align: center;">
+                    {{ item.cantidad }}
+                  </div>
+                  <q-btn flat round dense color="positive" icon="add" size="sm"
+                    @click="cambiarCantidadItem(index, 1)" />
+                  <q-btn flat round dense color="warning" icon="delete_outline" size="sm"
+                    @click="eliminarProductoLista(index)" />
+                </div>
               </q-item-section>
             </q-item>
           </q-card>
@@ -356,23 +364,41 @@ export default {
           const base_linea_bs = precioBaseUsd.mul(tasa).mul(cantidad);
           const iva_linea_bs = montoIvaUsd.mul(tasa).mul(cantidad);
 
-          this.lista_compras.push({
-            id: result.id,
-            producto: result.nombre,
-            valor_bs: monto_total_bs.toDecimalPlaces(2).toNumber(), // Precio Final Venta en Bs
-            valor_unitario_bs: valor_unitario_bs.toDecimalPlaces(2).toNumber(),
-            costo_total_bs: costoTotalBs.toDecimalPlaces(6).toNumber(),
-            costo_unitario_bs: costo.mul(tasa).toDecimalPlaces(6).toNumber(),
-            cantidad: cantidad.toNumber(),
-            valor_dolar: tasa.toNumber(),
-            existencia: result.cantidad,
+          // Verificar si el producto ya existe en el carrito
+          const itemExistente = this.lista_compras.find(item => item.id === result.id);
 
-            // Fiscal Data
-            es_exento: !this.tributos.cobrar_iva || ivaPorc.eq(0),
-            tasa_iva: this.tributos.cobrar_iva ? ivaPorc.toNumber() : 0,
-            monto_base_bs: base_linea_bs.toDecimalPlaces(2).toNumber(),
-            monto_iva_bs: iva_linea_bs.toDecimalPlaces(2).toNumber()
-          });
+          if (itemExistente) {
+            // Sumar cantidad y recalcular montos del ítem existente
+            const nuevaCantidad = new Decimal(itemExistente.cantidad).plus(cantidad);
+            const nuevoCostoTotal = costo.mul(tasa).mul(nuevaCantidad);
+            const nuevoMontoTotal = valor_unitario_bs.mul(nuevaCantidad);
+            const nuevaBaseLinea = precioBaseUsd.mul(tasa).mul(nuevaCantidad);
+            const nuevaIvaLinea = montoIvaUsd.mul(tasa).mul(nuevaCantidad);
+
+            itemExistente.cantidad = nuevaCantidad.toNumber();
+            itemExistente.valor_bs = nuevoMontoTotal.toDecimalPlaces(2).toNumber();
+            itemExistente.costo_total_bs = nuevoCostoTotal.toDecimalPlaces(6).toNumber();
+            itemExistente.monto_base_bs = nuevaBaseLinea.toDecimalPlaces(2).toNumber();
+            itemExistente.monto_iva_bs = nuevaIvaLinea.toDecimalPlaces(2).toNumber();
+          } else {
+            this.lista_compras.push({
+              id: result.id,
+              producto: result.nombre,
+              valor_bs: monto_total_bs.toDecimalPlaces(2).toNumber(), // Precio Final Venta en Bs
+              valor_unitario_bs: valor_unitario_bs.toDecimalPlaces(2).toNumber(),
+              costo_total_bs: costoTotalBs.toDecimalPlaces(6).toNumber(),
+              costo_unitario_bs: costo.mul(tasa).toDecimalPlaces(6).toNumber(),
+              cantidad: cantidad.toNumber(),
+              valor_dolar: tasa.toNumber(),
+              existencia: result.cantidad,
+
+              // Fiscal Data
+              es_exento: !this.tributos.cobrar_iva || ivaPorc.eq(0),
+              tasa_iva: this.tributos.cobrar_iva ? ivaPorc.toNumber() : 0,
+              monto_base_bs: base_linea_bs.toDecimalPlaces(2).toNumber(),
+              monto_iva_bs: iva_linea_bs.toDecimalPlaces(2).toNumber()
+            });
+          }
 
           this.total = this.lista_compras.reduce((acc, el) => new Decimal(acc).plus(el.valor_bs).toNumber(), 0);
           this.totalConIGTF = this.total; // Reset logic handles updates
@@ -575,14 +601,55 @@ export default {
       }
     },
     eliminarProductoLista(index) {
-      console.log(index)
-      let monto_quitar = this.lista_compras[index];
       this.lista_compras.splice(index, 1);
+      this.recalcularTotal();
+    },
+    cambiarCantidadItem(index, delta) {
+      const item = this.lista_compras[index];
+      if (!item) return;
 
-      // Re-sum total from remaining items to be safe and accurate
+      const nuevaCantidad = item.cantidad + delta;
+
+      // Si llega a 0, eliminar el ítem completo
+      if (nuevaCantidad <= 0) {
+        this.lista_compras.splice(index, 1);
+        this.recalcularTotal();
+        return;
+      }
+
+      // Validar stock al aumentar
+      if (delta > 0 && nuevaCantidad > item.existencia) {
+        this.$q.notify({
+          type: 'negative',
+          message: `Stock insuficiente. Disponible: ${item.existencia}`
+        });
+        return;
+      }
+
+      // Recalcular montos proporcionales usando precio unitario
+      const precioUnit = new Decimal(item.valor_unitario_bs);
+      const costoUnit = new Decimal(item.costo_unitario_bs);
+      const cantDec = new Decimal(nuevaCantidad);
+
+      item.cantidad = nuevaCantidad;
+      item.valor_bs = precioUnit.mul(cantDec).toDecimalPlaces(2).toNumber();
+      item.costo_total_bs = costoUnit.mul(cantDec).toDecimalPlaces(6).toNumber();
+
+      // Recalcular fiscal proporcional (base e IVA por unidad = monto_base_bs / cantidad_anterior)
+      if (!item.es_exento) {
+        const baseUnit = precioUnit.div(new Decimal(1).plus(new Decimal(item.tasa_iva).div(100)));
+        const ivaUnit = precioUnit.minus(baseUnit);
+        item.monto_base_bs = baseUnit.mul(cantDec).toDecimalPlaces(2).toNumber();
+        item.monto_iva_bs = ivaUnit.mul(cantDec).toDecimalPlaces(2).toNumber();
+      } else {
+        item.monto_base_bs = item.valor_bs;
+        item.monto_iva_bs = 0;
+      }
+
+      this.recalcularTotal();
+    },
+    recalcularTotal() {
       this.total = this.lista_compras.reduce((acc, el) => new Decimal(acc).plus(el.valor_bs).toNumber(), 0);
-
-      // Recalc IGTF if needed
       if (['Efectivo $', 'Zelle'].includes(this.form.metodo_pago) && this.tributos.cobrar_igtf) {
         this.calcularIGTF();
       } else {

@@ -46,35 +46,34 @@
         <div v-for="(item, index) in lista_compras" :key="item.id" class="col-12 col-md-6">
           <q-card class="rounded-card shadow-1">
             <q-item class="q-py-md">
-              <q-item-section avatar>
+              <q-item-section avatar top>
                 <q-avatar color="indigo-1" text-color="primary" icon="inventory_2" />
               </q-item-section>
 
               <q-item-section>
-                <q-item-label class="text-weight-bold text-dark">{{ item.producto }}</q-item-label>
-                <q-item-label caption>Stock: {{ item.existencia }}</q-item-label>
+                <q-item-label class="text-weight-bold text-dark" style="line-height: 1.2; margin-bottom: 4px;">{{ item.producto }}</q-item-label>
+                <q-item-label caption class="q-mb-sm">Stock: {{ item.existencia }}</q-item-label>
+                
+                <div class="row items-center no-wrap bg-grey-2 rounded-borders" style="width: fit-content;">
+                  <q-btn flat dense color="negative" icon="remove" size="sm" class="q-px-sm"
+                    @click="cambiarCantidadItem(index, -1)" />
+                  <div class="text-weight-bold text-dark q-px-xs" style="min-width: 28px; text-align: center;">
+                    {{ item.cantidad }}
+                  </div>
+                  <q-btn flat dense color="positive" icon="add" size="sm" class="q-px-sm"
+                    @click="cambiarCantidadItem(index, 1)" />
+                  <q-separator vertical />
+                  <q-btn flat dense color="warning" icon="delete_outline" size="sm" class="q-px-sm"
+                    @click="eliminarProductoLista(index)" />
+                </div>
               </q-item-section>
 
-              <q-item-section side class="text-right">
+              <q-item-section side top class="text-right">
                 <div class="text-weight-bold text-primary">
                   Bs {{ formatMoney(item.valor_bs) }}
                 </div>
                 <div class="text-caption text-grey" v-if="valor_dolar">
                   $ {{ formatMoneyUSD(item.valor_bs / valor_dolar) }}
-                </div>
-              </q-item-section>
-
-              <q-item-section side>
-                <div class="row items-center q-gutter-xs no-wrap">
-                  <q-btn flat round dense color="negative" icon="remove" size="sm"
-                    @click="cambiarCantidadItem(index, -1)" />
-                  <div class="text-weight-bold text-dark" style="min-width: 24px; text-align: center;">
-                    {{ item.cantidad }}
-                  </div>
-                  <q-btn flat round dense color="positive" icon="add" size="sm"
-                    @click="cambiarCantidadItem(index, 1)" />
-                  <q-btn flat round dense color="warning" icon="delete_outline" size="sm"
-                    @click="eliminarProductoLista(index)" />
                 </div>
               </q-item-section>
             </q-item>

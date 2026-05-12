@@ -249,6 +249,7 @@ export default {
         cobrar_iva: false,
         cobrar_igtf: false
       },
+      sugerencias_activas: true,
       montoIGTF: 0,
       totalConIGTF: 0,
 
@@ -293,6 +294,10 @@ export default {
       const taxes = await configuracionDAO.getInstance().get('tributos');
       if (taxes) {
         this.tributos = { ...taxes };
+      }
+      const sug = await configuracionDAO.getInstance().get('sugerencias_activas');
+      if (sug !== null) {
+        this.sugerencias_activas = sug;
       }
     },
     formatMoney(amount) {
@@ -682,6 +687,7 @@ export default {
       return parseFloat((valorBs / valorDolar).toFixed(2));
     },
     async checkRecommendation(productId) {
+      if (!this.sugerencias_activas) return;
       try {
         const excludedIds = this.lista_compras.map(item => item.id);
         const recommendation = await recommendationService.getRecommendation(productId, excludedIds);

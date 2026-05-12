@@ -91,6 +91,28 @@
                         </q-list>
                     </q-card-section>
                 </q-card>
+
+                <!-- Section 4: Recomendaciones -->
+                <q-card class="rounded-card shadow-1 q-mt-md">
+                    <q-card-section>
+                        <div class="text-subtitle1 text-weight-bold">Sugerencias y Recomendaciones</div>
+                        <div class="text-caption text-grey q-mb-md">
+                            Configura si deseas mostrar sugerencias de productos al realizar ventas.
+                        </div>
+
+                        <q-list>
+                            <q-item tag="label" v-ripple>
+                                <q-item-section>
+                                    <q-item-label>Sugerencias Activas</q-item-label>
+                                    <q-item-label caption>Mostrar "Clientes también llevan" al agregar productos al carrito</q-item-label>
+                                </q-item-section>
+                                <q-item-section side>
+                                    <q-toggle color="primary" v-model="sugerencias_activas" @input="saveSugerencias" />
+                                </q-item-section>
+                            </q-item>
+                        </q-list>
+                    </q-card-section>
+                </q-card>
             </div>
         </div>
     </q-page>
@@ -114,7 +136,8 @@ export default {
             tributos: {
                 cobrar_iva: false,
                 cobrar_igtf: false
-            }
+            },
+            sugerencias_activas: true
         }
     },
     mounted() {
@@ -141,6 +164,12 @@ export default {
                 const taxes = await configuracionDAO.getInstance().get('tributos');
                 if (taxes) {
                     this.tributos = { ...taxes };
+                }
+
+                // Recomendaciones
+                const sug = await configuracionDAO.getInstance().get('sugerencias_activas');
+                if (sug !== null) {
+                    this.sugerencias_activas = sug;
                 }
             } catch (e) {
                 console.error(e);
@@ -193,6 +222,19 @@ export default {
             } catch (e) {
                 console.error(e);
                 this.$q.notify({ type: 'negative', message: 'Error guardando tributos' });
+            }
+        },
+        async saveSugerencias() {
+            try {
+                await configuracionDAO.getInstance().save('sugerencias_activas', this.sugerencias_activas);
+                this.$q.notify({
+                    type: 'positive',
+                    message: 'Configuración de sugerencias actualizada',
+                    timeout: 1000
+                });
+            } catch (e) {
+                console.error(e);
+                this.$q.notify({ type: 'negative', message: 'Error guardando configuración de sugerencias' });
             }
         }
     }

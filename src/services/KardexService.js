@@ -8,51 +8,36 @@ export class KardexService {
     }
 
     /**
-     * Calcula la velocidad de ventas (promedio de unidades vendidas por día)
-     * basándose en los últimos 30 días de movimientos.
-     * @param {number} productoId 
-     */
-    async calcularVelocidadVentas(productoId) {
-        // Rango: Últimos 30 días
-        const hoy = new Date();
-        const hace30dias = date.subtractFromDate(hoy, { days: 30 });
-        
-        // Obtener historial completo (ya que DAO filtra por fecha opcionalmente, 
-        // pero aquí necesitamos filtrar en lógica o pedirle al DAO un rango)
-        // Optimizamos usando el DAO con rango
-        const inicio = hace30dias.getTime(); // Timestamp
-        const fin = hoy.getTime(); // Timestamp
-
-        // Obtener todos los movimientos y filtrar por este producto y tipo SALIDA
-        // Nota: Idealmente el DAO tendría un método query específico, pero
-        // por simplicidad iteramos sobre getByProducto o mejoramos el DAO.
-        // Asumimos que getByProducto devuelve todo y filtramos en JS.
-        const movimientos = await movimientosDAO.getInstance().getByProducto(productoId);
-        
-        const salidasRecientes = movimientos.filter(m => 
-            m.tipo === 'SALIDA' && 
-            m.fecha >= inicio && 
-            m.fecha <= fin
-        );
-
-        if (salidasRecientes.length === 0) return 0;
-
-        const totalUnidadesVendidas = salidasRecientes.reduce((sum, m) => sum + m.cantidad, 0);
-        
-        // Calcular promedio diario (dividir por 30 es un estándar simple, 
-        // o por días transcurridos desde la primera venta si es < 30)
-        return totalUnidadesVendidas / 30;
-    }
-
-    /**
      * Genera sugerencias de reabastecimiento para todos los productos.
+     * Optimizada para realizar consultas en lote (Batch Processing).
      */
     async generarSugerencias() {
-        const productos = await productosDAO.getInstance().get();
+        const hoy = new Date();
+        const hace30dias = date.subtractFromDate(hoy, { days: 30 });
+        const inicio = hace30dias.getTime();
+        const fin = hoy.getTime();
+
+        // 1. Obtener todos los productos y TODAS las salidas del periodo en solo 2 queries
+        const [productos, todasLasSalidas] = await Promise.all([
+            productosDAO.getInstance().get(),
+            movimientosDAO.getInstance().getSalidasPorFecha(inicio, fin)
+        ]);
+
+        // 2. Agrupar salidas por producto_id en memoria (O(n))
+        const salidasPorProducto = {};
+        todasLasSalidas.forEach(m => {
+            if (!salidasPorProducto[m.producto_id]) {
+                salidasPorProducto[m.producto_id] = 0;
+            }
+            salidasPorProducto[m.producto_id] += (m.cantidad || 0);
+        });
+
         const sugerencias = [];
 
+        // 3. Procesar productos
         for (const producto of productos) {
-            const velocidad = await this.calcularVelocidadVentas(producto.id);
+            const totalVendido = salidasPorProducto[producto.id] || 0;
+            const velocidad = totalVendido / 30;
             
             // Si no hay ventas, verificar si el stock absoluto es crítico (fallback)
             if (velocidad === 0) {
@@ -61,7 +46,7 @@ export class KardexService {
                         producto: producto,
                         velocidadDia: '---', 
                         diasRestantes: 0, 
-                        mensaje: producto.cantidad === 0 ? '¡Agotado!' : 'Stock Crítico (Sin ventas previas)',
+                        mensaje: producto.cantidad === 0 ? '¡Agotado!' : 'Stock Crítico (Sin ventas)',
                         prioridad: 'ALTA'
                     });
                 }
@@ -77,7 +62,7 @@ export class KardexService {
                     producto: producto,
                     velocidadDia: velocidad.toFixed(2),
                     diasRestantes: Math.floor(diasRestantes),
-                    mensaje: diasRestantes < 1 ? '¡Agotado o por agotarse hoy!' : `Quedan para ${Math.floor(diasRestantes)} días`,
+                    mensaje: diasRestantes < 1 ? '¡Agotado pronto!' : `Quedan para ${Math.floor(diasRestantes)} días`,
                     prioridad: diasRestantes < 3 ? 'ALTA' : 'MEDIA'
                 });
             }

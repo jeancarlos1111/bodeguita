@@ -1,5 +1,5 @@
 <template>
-  <q-page class="bg-grey-3 q-pa-md" padding>
+  <q-page class=" q-pa-md" padding>
     <div class="row q-mb-md">
       <q-input class="col q-mr-sm" filled v-model="inicio" mask="date" :rules="['date']" label="Fecha Inicio">
         <template v-slot:append>
@@ -175,8 +175,6 @@ export default Vue.extend({
         fechaFin = date.formatDate(fechaFin, "YYYY/MM/DD");
       }
 
-      console.log("Fechas para filtrar:", fechaInicio, fechaFin);
-
       this.$q.loading.show();
 
       try {
@@ -185,7 +183,6 @@ export default Vue.extend({
           .getInstance()
           .get(fechaInicio, fechaFin)
           .then(result => {
-            console.log("Ventas encontradas:", result);
             this.ventas = result || [];
 
             // Agrupar ventas por producto
@@ -299,37 +296,37 @@ export default Vue.extend({
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          legend: {
-            display: true,
-            position: "top"
-          },
-          tooltips: {
-            callbacks: {
-              label: function (tooltipItem, data) {
-                const index = tooltipItem.index;
-                const cantidad = cantidades[index];
-                const total = new Intl.NumberFormat("es-VE", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2
-                }).format(tooltipItem.yLabel);
-                return `Total: Bs ${total} | Cantidad: ${cantidad}`;
+          plugins: {
+            legend: {
+              display: true,
+              position: "top"
+            },
+            tooltip: {
+              callbacks: {
+                label: function (context) {
+                  const index = context.dataIndex;
+                  const cantidad = cantidades[index];
+                  const total = new Intl.NumberFormat("es-VE", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  }).format(context.parsed.y);
+                  return `Total: Bs ${total} | Cantidad: ${cantidad}`;
+                }
               }
             }
           },
           scales: {
-            yAxes: [
-              {
-                ticks: {
-                  beginAtZero: true,
-                  callback: function (value) {
-                    return new Intl.NumberFormat("es-VE", {
-                      minimumFractionDigits: 0,
-                      maximumFractionDigits: 0
-                    }).format(value);
-                  }
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: function (value) {
+                  return new Intl.NumberFormat("es-VE", {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                  }).format(value);
                 }
               }
-            ]
+            }
           }
         }
       });

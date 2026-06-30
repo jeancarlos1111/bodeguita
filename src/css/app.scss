@@ -20,6 +20,21 @@ body {
   background-color: var(--app-bg);
   color: var(--app-text-main);
   font-family: 'Roboto', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+body.body--dark {
+  --app-bg: #121212;
+  --app-card-bg: #1E1E1E;
+  --app-text-main: #F3F4F6;
+  --app-text-sub: #9CA3AF;
+  
+  background-color: var(--app-bg);
+  color: var(--app-text-main);
+
+  .text-h1, .text-h2, .text-h3, .text-h4, .text-h5, .text-h6 {
+    color: #fff;
+  }
 }
 
 // Utilities
@@ -58,7 +73,12 @@ body {
 
 .q-field--filled .q-field__control {
   border-radius: 12px;
-  background: #fff;
+}
+
+body.body--light {
+  .q-field--filled .q-field__control {
+    background: #fff;
+  }
 }
 
 .q-field--filled .q-field__control:before {

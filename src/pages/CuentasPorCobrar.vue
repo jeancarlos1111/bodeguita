@@ -1,11 +1,11 @@
 <template>
-    <q-page class="q-pa-md bg-grey-1">
+    <q-page class="q-pa-md ">
         <div class="row items-center q-mb-md">
             <div class="text-h6 text-primary">Cuentas por Cobrar (Fiado)</div>
             <q-space />
             <div class="text-subtitle1 text-grey-8">
-                Total Pendiente: <strong>Bs {{ formatMoney(totalPendiente) }}</strong>
-                <span v-if="valor_dolar" class="text-caption q-ml-sm">($ {{ formatMoneyUSD(totalPendiente / valor_dolar)
+                Total Pendiente: <strong>Bs {{ m_formatMoney(totalPendiente) }}</strong>
+                <span v-if="m_valor_dolar" class="text-caption q-ml-sm">($ {{ m_formatMoneyUSD(totalPendiente / m_valor_dolar)
                 }})</span>
             </div>
         </div>
@@ -23,30 +23,30 @@
 
                 <template v-slot:body-cell-fecha="props">
                     <q-td :props="props">
-                        {{ formatDate(props.row.create_at) }}
+                        {{ m_formatDateTime(props.row.create_at) }}
                     </q-td>
                 </template>
 
                 <template v-slot:body-cell-total="props">
                     <q-td :props="props" class="text-weight-bold">
-                        Bs {{ formatMoney(props.row.total) }}
-                        <div class="text-caption text-grey" v-if="valor_dolar">
-                            $ {{ formatMoneyUSD(props.row.total / valor_dolar) }}
+                        Bs {{ m_formatMoney(props.row.total) }}
+                        <div class="text-caption text-grey" v-if="m_valor_dolar">
+                            $ {{ m_formatMoneyUSD(props.row.total / m_valor_dolar) }}
                         </div>
                     </q-td>
                 </template>
 
                 <template v-slot:body-cell-pagado="props">
                     <q-td :props="props">
-                        Bs {{ formatMoney(props.row.monto_pagado) }}
+                        Bs {{ m_formatMoney(props.row.monto_pagado) }}
                     </q-td>
                 </template>
 
                 <template v-slot:body-cell-restante="props">
                     <q-td :props="props" class="text-weight-bold text-negative">
-                        Bs {{ formatMoney(props.row.restante) }}
-                        <div class="text-caption text-grey" v-if="valor_dolar">
-                            $ {{ formatMoneyUSD(props.row.restante / valor_dolar) }}
+                        Bs {{ m_formatMoney(props.row.restante) }}
+                        <div class="text-caption text-grey" v-if="m_valor_dolar">
+                            $ {{ m_formatMoneyUSD(props.row.restante / m_valor_dolar) }}
                         </div>
                     </q-td>
                 </template>
@@ -69,7 +69,7 @@
                 <q-card-section>
                     <div class="text-h6">Detalle de Venta #{{ selectedVenta.numero_factura }}</div>
                     <div class="text-subtitle2">{{ selectedVenta.cliente_nombre }} - {{
-                        formatDate(selectedVenta.create_at) }}
+                        m_formatDateTime(selectedVenta.create_at) }}
                     </div>
                 </q-card-section>
 
@@ -81,7 +81,7 @@
                                 <q-item-label caption>Cant: {{ prod.cantidad }}</q-item-label>
                             </q-item-section>
                             <q-item-section side>
-                                Bs {{ formatMoney(prod.valor_bs) }}
+                                Bs {{ m_formatMoney(selectedVenta.productos[index].valor_bs) }}
                             </q-item-section>
                         </q-item>
                     </q-list>
@@ -103,7 +103,7 @@
 
                 <q-card-section class="q-pt-none">
                     <div class="text-subtitle1 q-mb-sm">
-                        Deuda Restante: <span class="text-negative text-weight-bold">Bs {{ formatMoney(paymentForm.max)
+                        Deuda Restante: <span class="text-negative text-weight-bold">Bs {{ m_formatMoney(paymentForm.max)
                             }}</span>
                     </div>
 
@@ -134,7 +134,6 @@ export default {
     data() {
         return {
             ventasPendientes: [],
-            valor_dolar: null,
             filter: '',
             pagination: {
                 rowsPerPage: 10
@@ -160,23 +159,10 @@ export default {
         }
     },
     mounted() {
-        this.getDolar();
+        this.m_getDolar();
         this.getVentasPendientes();
     },
     methods: {
-        formatMoney(amount) {
-            return new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount || 0);
-        },
-        formatMoneyUSD(amount) {
-            return new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount || 0);
-        },
-        formatDate(timeStamp) {
-            if (!timeStamp) return '';
-            return date.formatDate(timeStamp, 'DD/MM/YYYY hh:mm A');
-        },
-        getDolar() {
-            valor_dolarDAO.getInstance().getUltimo().then(result => { this.valor_dolar = result.valor_dolar });
-        },
         async getVentasPendientes() {
             const ventas = await db.ventas
                 .where('estado')

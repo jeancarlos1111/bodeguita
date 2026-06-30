@@ -1,13 +1,15 @@
 <template>
-    <q-page class="q-pa-md bg-grey-2">
-        <div class="text-h5 q-mb-md text-primary text-weight-bold">
+    <q-page :class="$q.dark.isActive ? 'bg-dark' : 'bg-grey-2'" class="q-pa-md">
+        <div class="text-h5 q-mb-md text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-primary'">
             <q-icon name="psychology" size="md" class="q-mr-sm" />Kardex Inteligente
         </div>
 
         <!-- Smart Suggestions Dashboard -->
         <div class="row q-col-gutter-md q-mb-xl">
             <div class="col-12">
-                <q-banner rounded class="bg-indigo-1 text-primary shadow-1" v-if="estadisticas.productosBajoStock > 0">
+                <q-banner rounded class="shadow-1" 
+                    :class="$q.dark.isActive ? 'bg-indigo-9 text-white' : 'bg-indigo-1 text-primary'" 
+                    v-if="estadisticas.productosBajoStock > 0">
                     <template v-slot:avatar>
                         <q-icon name="add_alert" color="primary" />
                     </template>
@@ -31,7 +33,8 @@
 
             <!-- Suggestion Cards -->
             <div class="col-12 col-md-4" v-for="(sugerencia, index) in estadisticas.topSugerencias" :key="index">
-                <q-card class="my-card shadow-2" :class="sugerencia.prioridad === 'ALTA' ? 'bg-red-1' : 'bg-white'">
+                <q-card class="my-card shadow-2" 
+                    :class="$q.dark.isActive ? 'bg-grey-9 text-white' : (sugerencia.prioridad === 'ALTA' ? 'bg-red-1' : 'bg-white')">
                     <q-card-section>
                         <div class="row items-center no-wrap">
                             <div class="col">
@@ -61,10 +64,10 @@
         <q-separator class="q-mb-md" />
 
         <!-- Movement History -->
-        <div class="text-h6 q-mb-sm text-grey-8">Movimientos Recientes</div>
+        <div class="text-h6 q-mb-sm" :class="$q.dark.isActive ? 'text-white' : 'text-grey-8'">Movimientos Recientes</div>
 
         <q-table :data="movimientos" :columns="columns" row-key="id" :filter="filter"
-            class="bg-white rounded-card shadow-1" :pagination.sync="pagination"
+            class=" rounded-card shadow-1" :pagination.sync="pagination"
             no-data-label="No hay movimientos registrados aún">
             <template v-slot:top-right>
                 <q-input borderless dense debounce="300" v-model="filter" placeholder="Buscar">

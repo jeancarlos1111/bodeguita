@@ -1,25 +1,23 @@
 <template>
-  <q-page class="bg-grey-3 q-pa-md" padding>
+  <q-page class=" q-pa-md" padding>
     <div class="row q-mb-md">
       <q-btn class="col" color="primary" icon="create" label="Nuevo valor dolar" @click="dialogoNuevoValor" />
     </div>
     <q-table title="Valores Dolar" :data="data" :columns="columns" :filter="filter"
       no-data-label="No encontré nada para ti" no-results-label="El filtro no reveló ningún resultado."
       row-key="valor_dolar" selection="single" :selected.sync="selected" :grid="$q.screen.lt.md"
-      card-class="bg-white rounded-card shadow-1">
+      card-class=" rounded-card shadow-1">
       <template v-slot:top>
-        <div class="row full-width items-center">
-          <div class="col-6">
-            <q-btn flat round color="negative" icon="delete" @click="deleteR" class="q-mr-sm"
-              v-if="selected.length > 0">
-              <q-tooltip transition-show="rotate" transition-hide="rotate">
-                Eliminar registro seleccionado
-              </q-tooltip>
-            </q-btn>
+        <div class="row full-width items-center q-col-gutter-md">
+          <div class="col-12 col-sm-6">
+            <div class="text-h6 text-primary text-weight-bold">Historial de Tasa</div>
           </div>
-          <div class="col-6">
-            <q-input borderless dense debounce="300" v-model="filter" placeholder="Buscar" class="full-width">
-              <q-icon slot="append" name="search" />
+          <q-space class="gt-xs" />
+          <div class="col-12 col-sm-4">
+            <q-input filled dense debounce="300" v-model="filter" placeholder="Buscar fecha o valor...">
+              <template v-slot:append>
+                <q-icon name="search" />
+              </template>
             </q-input>
           </div>
         </div>
@@ -29,16 +27,22 @@
 
       <template v-slot:item="props">
         <div class="q-pa-xs col-xs-12 col-sm-6 col-md-4">
-          <q-card class="rounded-card shadow-1" :class="props.selected ? 'bg-indigo-1' : ''">
+          <q-card class="rounded-card shadow-1 transition-card" :class="props.selected ? 'bg-indigo-1' : ''">
             <q-card-section class="row items-center justify-between">
-              <div class="text-h6 text-primary text-weight-bold">Bs {{ new
-                Intl.NumberFormat("es-VE").format(props.row.valor_dolar) }}</div>
-              <q-checkbox v-model="props.selected" dense />
+              <div>
+                <div class="text-caption text-grey">Valor del Dólar</div>
+                <div class="text-h5 text-primary text-weight-bold">
+                  Bs {{ m_formatMoney(props.row.valor_dolar) }}
+                </div>
+              </div>
+              <q-checkbox v-model="props.selected" dense color="primary" />
             </q-card-section>
-            <q-separator />
-            <q-card-section>
-              <div class="text-caption text-grey">Fecha de registro</div>
-              <div>{{ hoyFecha(props.row.create_at) }}</div>
+            <q-separator inset />
+            <q-card-section class="row items-center">
+              <q-icon name="event" color="grey-7" size="sm" class="q-mr-sm" />
+              <div class="text-subtitle2 text-grey-8">
+                {{ m_formatDateTime(props.row.create_at) }}
+              </div>
             </q-card-section>
           </q-card>
         </div>
@@ -106,10 +110,10 @@ export default {
           label: 'Valor Dolar',
           align: 'center',
           field: row => row.valor_dolar,
-          format: val => `${new Intl.NumberFormat("es-VE").format(val)}`,
+          format: val => this.m_formatMoney(val),
           sortable: true
         },
-        { name: 'create_at', align: 'center', label: 'Fecha', field: 'create_at', sortable: true, format: val => `${this.hoyFecha(val)}` }
+        { name: 'create_at', align: 'center', label: 'Fecha', field: 'create_at', sortable: true, format: val => this.m_formatDateTime(val) }
       ]
     }
   },
@@ -117,21 +121,9 @@ export default {
     this.get();
   },
   computed: {
-    hoyDate() {
-      let timeStamp = Date.now();
-      return date.formatDate(timeStamp, 'dddd D MMMM hh:mm A');
-    },
-    fechaCreacion() {
-      let timeStamp = Date.now();
-      return date.formatDate(timeStamp, 'YYYY/MM/DD HH:mm:ss');
-    }
   },
 
   methods: {
-    hoyFecha(timeStamp) {
-      //timeStamp = date.addToDate(timeStamp, { days: 1, month: 0 })
-      return date.formatDate(timeStamp, 'DD-MM-YYYY HH:mm:ss');
-    },
     dialogoNuevoValor() {
       this.m_nuevo_valor = true;
     },
@@ -144,7 +136,7 @@ export default {
     },
     save() {
       this.$q.loading.show();
-      this.form.create_at = this.fechaCreacion;
+      this.form.create_at = this.m_fechaCreacion;
       this.form.valor_dolar = parseFloat(this.form.valor_dolar);
       valor_dolarDAO.getInstance().save(this.form).then(() => {
         this.m_nuevo_valor = false;
@@ -156,7 +148,7 @@ export default {
           type: 'positive',
           message: `Datos guardados.`
         });
-      }).catch(function (e) {
+      }).catch((e) => {
         console.error(`Error: ${e.stack}`);
         this.$q.notify({
           position: 'top',
@@ -166,7 +158,6 @@ export default {
       });
     },
     deleteR() {
-      console.log(this.selected);
       if (this.selected.length === 1) {
         this.$q.dialog({
           title: '¿Desea borrar este registro?',
@@ -190,7 +181,6 @@ export default {
           this.selected = [];
         })
       } else {
-        console.log(this.selected)
         this.$q.notify({
           position: 'top',
           type: 'warning',

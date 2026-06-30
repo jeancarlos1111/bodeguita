@@ -1,5 +1,5 @@
 <template>
-    <q-page class="q-pa-md bg-grey-1">
+    <q-page class="q-pa-md ">
         <div class="row items-center justify-between no-wrap q-mb-md">
             <div class="text-h5 text-primary text-weight-bold col">Libro de Ventas</div>
             <div class="col-auto">
@@ -9,7 +9,7 @@
         </div>
 
         <!-- Filter Card -->
-        <q-card class="rounded-card shadow-1 q-mb-md bg-white">
+        <q-card class="rounded-card shadow-1 q-mb-md ">
             <q-card-section>
                 <div class="row q-col-gutter-sm items-center">
                     <div class="col-6 col-md-3">
@@ -21,10 +21,10 @@
                     </div>
                     <div class="col-12 col-md-6 text-right">
                         <div class="text-h6 text-primary">
-                            Total Mes: Bs {{ formatMoney(totalMes) }}
+                            Total Mes: Bs {{ m_formatMoney(totalMes) }}
                         </div>
-                        <div class="text-caption text-grey">Base: {{ formatMoney(totalBase) }} | IVA: {{
-                            formatMoney(totalIVA) }} | IGTF: {{ formatMoney(totalIGTF) }}</div>
+                        <div class="text-caption text-grey">Base: {{ m_formatMoney(totalBase) }} | IVA: {{
+                            m_formatMoney(totalIVA) }} | IGTF: {{ m_formatMoney(totalIGTF) }}</div>
                     </div>
                 </div>
             </q-card-section>
@@ -35,7 +35,7 @@
             :pagination.sync="pagination" no-data-label="No hay registros para este mes">
             <template v-slot:body-cell-fecha="props">
                 <q-td :props="props">
-                    {{ formatDate(props.row.create_at) }}
+                    {{ m_formatDate(props.row.create_at) }}
                 </q-td>
             </template>
 
@@ -56,7 +56,7 @@
 
             <template v-slot:body-cell-total="props">
                 <q-td :props="props" class="text-weight-bold text-primary">
-                    {{ formatMoney(props.row.total) }}
+                    {{ m_formatMoney(props.row.total) }}
                 </q-td>
             </template>
         </q-table>
@@ -89,11 +89,11 @@ export default {
                 { name: 'fecha', align: 'left', label: 'Fecha', field: 'create_at', sortable: true },
                 { name: 'factura', align: 'center', label: 'Nro Fact', field: 'numero_factura', sortable: true },
                 { name: 'cliente', align: 'left', label: 'Cliente (RIF/Nombre)', field: 'cliente_nombre' },
-                { name: 'total', align: 'right', label: 'Total Venta', field: 'total', format: val => this.formatMoney(val) },
-                { name: 'exento', align: 'right', label: 'Exento', field: 'monto_exento', format: val => this.formatMoney(val) },
-                { name: 'base', align: 'right', label: 'Base Imp.', field: 'monto_base', format: val => this.formatMoney(val) },
-                { name: 'iva', align: 'right', label: 'IVA (16%)', field: 'monto_iva', format: val => this.formatMoney(val) },
-                { name: 'igtf', align: 'right', label: 'IGTF (3%)', field: 'monto_igtf', format: val => this.formatMoney(val) }
+                { name: 'total', align: 'right', label: 'Total Venta', field: 'total', format: val => this.m_formatMoney(val) },
+                { name: 'exento', align: 'right', label: 'Exento', field: 'monto_exento', format: val => this.m_formatMoney(val) },
+                { name: 'base', align: 'right', label: 'Base Imp.', field: 'monto_base', format: val => this.m_formatMoney(val) },
+                { name: 'iva', align: 'right', label: 'IVA (16%)', field: 'monto_iva', format: val => this.m_formatMoney(val) },
+                { name: 'igtf', align: 'right', label: 'IGTF (3%)', field: 'monto_igtf', format: val => this.m_formatMoney(val) }
             ]
         }
     },
@@ -115,13 +115,6 @@ export default {
         this.cargarLibro();
     },
     methods: {
-        formatMoney(amount) {
-            if (amount === undefined || amount === null) return '0,00';
-            return new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
-        },
-        formatDate(timestamp) {
-            return date.formatDate(timestamp, 'DD/MM/YYYY');
-        },
         async cargarLibro() {
             this.$q.loading.show();
             try {
@@ -172,7 +165,7 @@ export default {
 
             this.ventasMensuales.forEach(v => {
                 const row = [
-                    this.formatDate(v.create_at),
+                    this.m_formatDate(v.create_at),
                     String(v.numero_factura).padStart(6, '0'),
                     String(v.numero_factura).padStart(6, '0'), // Control same as Factura for now
                     `"${v.cliente_nombre || 'Cliente Genérico'}"`,

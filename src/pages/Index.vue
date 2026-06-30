@@ -1,14 +1,25 @@
 <template>
-  <q-page class="q-pa-md q-pb-xl bg-grey-1">
+  <q-page :class="$q.dark.isActive ? 'bg-dark' : ''" class="q-pa-md q-pb-xl">
 
     <!-- Input Section -->
-    <q-card class="rounded-card q-mb-md shadow-1 bg-white">
+    <q-card class="rounded-card q-mb-md shadow-1" :class="$q.dark.isActive ? 'bg-grey-9' : ''">
       <q-card-section>
+        <!-- Categories Filter -->
+        <div class="q-mb-md scroll no-wrap row q-gutter-xs" v-if="categorias.length > 0">
+          <q-chip clickable :outline="filtroCategoria !== null" color="primary" text-color="white" icon="list"
+            @click="setFiltroCategoria(null)" label="Todos" />
+          <q-chip v-for="cat in categorias" :key="cat.id" clickable :outline="filtroCategoria !== cat.id"
+            color="primary" text-color="white" @click="setFiltroCategoria(cat.id)">
+            {{ cat.nombre }}
+          </q-chip>
+        </div>
+
         <div class="row q-col-gutter-sm">
           <div class="col-12 col-sm-7">
             <q-select ref="productoSelect" filled autofocus v-model="producto" use-input hide-selected fill-input
               input-debounce="0" :options="options" @filter="filterFn" label="Buscar Producto / Código de barras"
-              color="primary" behavior="menu" class="rounded-borders" @new-value="onNewValue">
+              color="primary" behavior="menu" class="rounded-borders" @new-value="onNewValue"
+              option-label="nombre" emit-value map-options option-value="nombre">
               <template v-slot:no-option>
                 <q-item>
                   <q-item-section class="text-grey">Sin resultados</q-item-section>
@@ -70,10 +81,10 @@
 
               <q-item-section side top class="text-right">
                 <div class="text-weight-bold text-primary">
-                  Bs {{ formatMoney(item.valor_bs) }}
+                  Bs {{ m_formatMoney(item.valor_bs) }}
                 </div>
-                <div class="text-caption text-grey" v-if="valor_dolar">
-                  $ {{ formatMoneyUSD(item.valor_bs / valor_dolar) }}
+                <div class="text-caption text-grey" v-if="m_valor_dolar">
+                  $ {{ m_formatMoneyUSD(item.valor_bs / m_valor_dolar) }}
                 </div>
               </q-item-section>
             </q-item>
@@ -92,15 +103,16 @@
     <!-- Sticky Total Footer (Mobile) -->
     <q-page-sticky position="bottom" :offset="[0, 0]" class="lt-md" expand v-if="lista_compras.length > 0"
       style="z-index: 2000">
-      <div class="bg-white q-pa-md shadow-up-2 row items-center justify-between full-width"
+      <div class="q-pa-md shadow-up-2 row items-center justify-between full-width"
+        :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'"
         style="border-top-left-radius: 16px; border-top-right-radius: 16px;">
         <div>
           <div class="text-caption text-grey">Total a Pagar</div>
           <div class="text-h6 text-primary text-weight-bold">
-            Bs {{ formatMoney(total) }}
+            Bs {{ m_formatMoney(total) }}
           </div>
-          <div class="text-subtitle2 text-grey-7" v-if="valor_dolar">
-            $ {{ formatMoneyUSD(total / valor_dolar) }}
+          <div class="text-subtitle2 text-grey-7" v-if="m_valor_dolar">
+            $ {{ m_formatMoneyUSD(total / m_valor_dolar) }}
           </div>
         </div>
         <q-btn color="primary" label="Pagar" icon="payments" @click="confirmPaymentDialog = true" rounded unelevated
@@ -114,9 +126,9 @@
       <div class="bg-primary text-white shadow-up-2 row items-center justify-between full-width q-px-xl q-py-md">
         <div class="row items-center q-gutter-x-md">
           <div class="text-subtitle1 text-indigo-2">Total a Pagar:</div>
-          <div class="text-h4 text-indigo-2 text-weight-bold">Bs {{ formatMoney(total) }}</div>
-          <div class="text-h5 text-indigo-2" v-if="valor_dolar">
-            $ {{ formatMoneyUSD(total / valor_dolar) }}
+          <div class="text-h4 text-indigo-2 text-weight-bold">Bs {{ m_formatMoney(total) }}</div>
+          <div class="text-h5 text-indigo-2" v-if="m_valor_dolar">
+            $ {{ m_formatMoneyUSD(total / m_valor_dolar) }}
           </div>
         </div>
         <q-btn color="white" text-color="primary" label="Pagar" icon="payments" @click="confirmPaymentDialog = true"
@@ -133,10 +145,10 @@
           <q-space />
           <q-btn icon="close" flat round dense v-close-popup />
         </q-card-section>
-
+ 
         <q-card-section>
           <div class="text-subtitle1 q-mb-md">
-            ¿Deseas procesar la venta por <span class="text-weight-bold">Bs {{ formatMoney(total) }}</span>?
+            ¿Deseas procesar la venta por <span class="text-weight-bold">Bs {{ m_formatMoney(total) }}</span>?
           </div>
 
           <q-select filled v-model="form.metodo_pago" :options="paymentOptions" label="Método de Pago" class="q-mb-sm"
@@ -146,9 +158,12 @@
             </template>
           </q-select>
 
-          <div class="text-caption text-grey" v-if="valor_dolar">
-            Equivalente a $ {{ formatMoneyUSD(total / valor_dolar) }}
+          <div class="text-caption text-grey" v-if="m_valor_dolar">
+            Equivalente a $ {{ m_formatMoneyUSD(total / m_valor_dolar) }}
           </div>
+
+          <q-input filled v-model="observaciones" label="Observaciones / Notas" class="q-mt-sm" autogrow
+            placeholder="Ej: Entregar a domicilio, Cliente conocido..." dense />
         </q-card-section>
 
         <q-card-actions align="right" class="q-pt-none q-pb-md q-px-md">
@@ -201,12 +216,33 @@
       </q-card>
     </q-dialog>
 
+    <!-- Ticket Dialog -->
+    <q-dialog v-model="m_ticket_dialog" persistent>
+      <q-card style="min-width: 320px; border-radius: 16px;">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6 text-primary">Venta Completada</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+
+        <q-card-section class="flex flex-center">
+          <ticket-venta v-if="ultimaVenta" :venta="ultimaVenta" ref="ticketComponent" />
+        </q-card-section>
+
+        <q-card-actions align="center" class="q-pb-md">
+          <q-btn unelevated label="Imprimir Ticket" color="primary" icon="print" @click="imprimirTicket" />
+          <q-btn flat label="Nueva Venta" color="grey" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
   </q-page>
 </template>
 
 <script>
 import { date } from 'quasar';
 import { productosDAO } from '../db/productosDAO';
+import { categoriasDAO } from '../db/categoriasDAO';
 import { valor_dolarDAO } from '../db/valor_dolarDAO';
 import { ventasDAO } from '../db/ventasDAO';
 import { Ventas } from '../models/Ventas';
@@ -219,13 +255,13 @@ import { clientesDAO } from '../db/clientesDAO';
 import { Clientes } from '../models/Clientes';
 import Decimal from 'decimal.js';
 import BarcodeScanner from '../components/BarcodeScanner.vue';
+import TicketVenta from '../components/TicketVenta.vue';
 
 export default {
   name: 'PageIndex',
-  components: { BarcodeScanner },
+  components: { BarcodeScanner, TicketVenta },
   data() {
     return {
-      valor_dolar: null,
       lista_compras: [],
       form: new Ventas(),
       total: 0,
@@ -236,7 +272,12 @@ export default {
       barcodeMap: {},   // { codigo_barras: nombre_producto }
       recommendedProduct: null,
       confirmPaymentDialog: false,
+      m_ticket_dialog: false,
+      ultimaVenta: null,
       paymentOptions: ['Efectivo Bs', 'Efectivo $', 'Pago Móvil', 'Punto de Venta', 'Zelle', 'Fiado'],
+      categorias: [],
+      filtroCategoria: null,
+      observaciones: '',
 
       // Client/Fiado Logic
       clienteDialog: false,
@@ -260,14 +301,6 @@ export default {
     }
   },
   computed: {
-    hoyDate() {
-      let timeStamp = Date.now();
-      return date.formatDate(timeStamp, 'dddd D MMMM hh:mm A');
-    },
-    fechaCreacion() {
-      let timeStamp = Date.now();
-      return date.formatDate(timeStamp, 'YYYY/MM/DD HH:mm:ss');
-    }
   },
   watch: {
     'form.metodo_pago'(val) {
@@ -281,8 +314,9 @@ export default {
   },
   mounted() {
     this.getProdutos();
-    this.getDolar();
+    this.m_getDolar();
     this.loadConfig();
+    this.loadCategorias();
     recommendationService.init();
     this.initBarcodeListener();
   },
@@ -290,6 +324,13 @@ export default {
     this.destroyBarcodeListener();
   },
   methods: {
+    async loadCategorias() {
+      this.categorias = await categoriasDAO.getInstance().get();
+    },
+    setFiltroCategoria(id) {
+      this.filtroCategoria = id;
+      this.producto = null; // Clear selection to avoid confusion
+    },
     async loadConfig() {
       const taxes = await configuracionDAO.getInstance().get('tributos');
       if (taxes) {
@@ -300,24 +341,15 @@ export default {
         this.sugerencias_activas = sug;
       }
     },
-    formatMoney(amount) {
-      return new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount || 0);
-    },
-    formatMoneyUSD(amount) {
-      return new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount || 0);
-    },
     getProdutos() {
       productosDAO.getInstance().get().then(result => {
         result.forEach(element => {
-          this.stringOptions.push(element.nombre);
+          this.stringOptions.push(element);
           if (element.codigo_barras) {
             this.barcodeMap[element.codigo_barras.trim()] = element.nombre;
           }
         });
       });
-    },
-    getDolar() {
-      valor_dolarDAO.getInstance().getUltimo().then(result => { this.valor_dolar = result.valor_dolar });
     },
     agregarListaCompra() {
       let producto = this.producto;
@@ -342,7 +374,7 @@ export default {
             precioFinalUsd = precioBaseUsd.plus(montoIvaUsd);
           }
 
-          const tasa = new Decimal(this.valor_dolar || 0);
+          const tasa = new Decimal(this.m_valor_dolar || 0);
           const cantidad = new Decimal(this.cantidad);
 
           // VALIDATION: Check Stock
@@ -482,7 +514,7 @@ export default {
         if (this.clienteFound && this.clienteFound.id) {
           clienteId = this.clienteFound.id;
         } else {
-          this.clienteForm.create_at = this.fechaCreacion;
+          this.clienteForm.create_at = this.m_fechaCreacion;
           clienteId = await clientesDAO.getInstance().save(this.clienteForm);
         }
 
@@ -512,7 +544,7 @@ export default {
     },
     async save(isFiadoConfirmed = false) {
       this.$q.loading.show();
-      this.form.create_at = this.fechaCreacion;
+      this.form.create_at = this.m_fechaCreacion;
       this.form.total = this.totalConIGTF; // Save total PAID (including tax)
       this.form.productos = this.lista_compras;
       this.form.metodo_pago = this.form.metodo_pago; // Already set
@@ -537,13 +569,15 @@ export default {
       this.form.tasa_iva = 16; // Standard calc reference
 
       this.form.monto_igtf = this.montoIGTF;
-      this.form.tasa_dolar = this.valor_dolar;
+      this.form.tasa_dolar = this.m_valor_dolar;
       // If paid in dollars, we estimate amount in USD
       if (['Efectivo $', 'Zelle'].includes(this.form.metodo_pago)) {
-        this.form.monto_dolar = new Decimal(this.total).div(this.valor_dolar).toDecimalPlaces(2).toNumber();
+        this.form.monto_dolar = new Decimal(this.total).div(this.m_valor_dolar).toDecimalPlaces(2).toNumber();
       } else {
         this.form.monto_dolar = 0;
       }
+
+      this.form.observaciones = this.observaciones;
 
 
       try {
@@ -555,6 +589,10 @@ export default {
 
         const ventaId = await ventasDAO.getInstance().save(this.form);
 
+        // Guardar para el ticket antes de limpiar
+        this.ultimaVenta = JSON.parse(JSON.stringify(this.form));
+        this.ultimaVenta.id = ventaId;
+
         await configuracionDAO.getInstance().save('secuencia_factura', currentSeq);
 
         for (const element of this.lista_compras) {
@@ -564,7 +602,7 @@ export default {
           movimiento.cantidad = element.cantidad;
           movimiento.fecha = Date.now();
           movimiento.referencia = `Venta #${ventaId} (Fac: ${currentSeq})`;
-          movimiento.create_at = this.fechaCreacion;
+          movimiento.create_at = this.m_fechaCreacion;
 
           await movimientosDAO.getInstance().save(movimiento);
 
@@ -584,6 +622,7 @@ export default {
 
         this.lista_compras = [];
         this.total = 0;
+        this.observaciones = '';
         this.$q.loading.hide();
 
         recommendationService.train();
@@ -593,6 +632,8 @@ export default {
           type: 'positive',
           message: `Venta registrada con éxito. Factura #${currentSeq}`
         });
+
+        this.m_ticket_dialog = true;
 
       } catch (e) {
         console.error(`Error: ${e.stack || e}`);
@@ -661,24 +702,24 @@ export default {
       }
     },
     filterFn(val, update, abort) {
-      if (val.length < 2) {
-        abort()
-        return
-      }
-
       update(() => {
         const needle = val.toLowerCase();
+        let filtered = this.stringOptions;
+        
+        // Apply Category Filter
+        if (this.filtroCategoria !== null) {
+          filtered = filtered.filter(p => p.categoria_id === this.filtroCategoria);
+        }
 
         // Buscar por nombre
-        const byName = this.stringOptions.filter(v => v.toLowerCase().indexOf(needle) > -1);
+        const byName = filtered.filter(v => v.nombre.toLowerCase().indexOf(needle) > -1);
 
-        // Buscar por código de barras: si el valor coincide exacta o parcialmente con algún código,
-        // incluir el nombre del producto (si no está ya en los resultados por nombre)
+        // Buscar por código de barras (mapear nombres a objetos)
         const byBarcode = Object.entries(this.barcodeMap)
           .filter(([code]) => code.toLowerCase().indexOf(needle) > -1)
-          .map(([, nombre]) => nombre)
-          .filter(nombre => !byName.includes(nombre));
-
+          .map(([, nombre]) => this.stringOptions.find(p => p.nombre === nombre))
+          .filter(p => p); // Eliminar posibles undefined
+          
         this.options = [...byName, ...byBarcode];
       })
     },
@@ -716,6 +757,9 @@ export default {
         this.agregarListaCompra();
         this.recommendedProduct = null;
       }
+    },
+    imprimirTicket() {
+      window.print();
     },
 
     // Busca un producto por código de barras (escáner de cámara) y lo agrega al carrito

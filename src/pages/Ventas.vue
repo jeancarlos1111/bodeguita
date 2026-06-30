@@ -1,7 +1,7 @@
 <template>
-  <q-page class="bg-grey-1 q-pa-md" padding>
+  <q-page class=" q-pa-md" padding>
     <!-- Date Filter Section -->
-    <q-card class="rounded-card shadow-1 q-mb-md bg-white">
+    <q-card class="rounded-card shadow-1 q-mb-md ">
       <q-card-section>
         <div class="row q-col-gutter-sm">
           <div class="col-12 col-sm-6">
@@ -44,7 +44,7 @@
         <div>
           <div class="text-subtitle2 text-indigo-2">Total Ventas</div>
           <div class="text-h5 text-indigo-2 text-weight-bold">
-            Bs {{ formatMoney(total) }}
+            Bs {{ m_formatMoney(total) }}
           </div>
         </div>
         <q-btn round color="white" text-color="green" icon="share" v-if="total > 0" type="a" :href="url_whatsapp"
@@ -67,7 +67,7 @@
 
               <q-item-section>
                 <q-item-label class="text-weight-bold text-dark">
-                  Bs {{ formatMoney(venta.total) }}
+                  Bs {{ m_formatMoney(venta.total) }}
                 </q-item-label>
                 <q-item-label caption lines="1">
                   <q-icon name="schedule" size="xs" /> {{ venta.create_at }}
@@ -94,14 +94,14 @@
 
     <!-- Details Dialog -->
     <q-dialog v-model="m_produtos" maximized transition-show="slide-up" transition-hide="slide-down">
-      <q-card class="bg-grey-1">
-        <q-toolbar class="bg-white text-primary shadow-1">
+      <q-card class="">
+        <q-toolbar class=" text-primary shadow-1">
           <q-btn flat round dense icon="close" v-close-popup />
           <q-toolbar-title class="text-weight-bold">Detalle de Venta</q-toolbar-title>
         </q-toolbar>
 
         <q-card-section class="q-pa-md">
-          <q-list class="bg-white rounded-card shadow-1" separator>
+          <q-list class=" rounded-card shadow-1" separator>
             <q-item v-for="(producto, index) in productos" :key="index" class="q-py-md">
               <q-item-section>
                 <q-item-label class="text-weight-bold">{{ producto.producto }}</q-item-label>
@@ -110,10 +110,10 @@
 
               <q-item-section side class="text-right">
                 <q-item-label class="text-primary text-weight-bold">
-                  Bs {{ formatMoney(producto.valor_bs || 0) }}
+                  Bs {{ m_formatMoney(producto.valor_bs || 0) }}
                 </q-item-label>
                 <q-item-label caption class="text-positive text-weight-bold">
-                  Ganancia: Bs {{ formatMoney((producto.valor_bs || 0) - (producto.costo_total_bs || 0)) }}
+                  Ganancia: Bs {{ m_formatMoney((producto.valor_bs || 0) - (producto.costo_total_bs || 0)) }}
                 </q-item-label>
               </q-item-section>
             </q-item>
@@ -124,10 +124,10 @@
               </q-item-section>
               <q-item-section side class="text-right">
                 <q-item-label class="text-h6 text-primary text-weight-bold">
-                  Bs {{ formatMoney(totalVenta) }}
+                  Bs {{ m_formatMoney(totalVenta) }}
                 </q-item-label>
                 <q-item-label caption class="text-positive text-weight-bold">
-                  Ganancia Total: Bs {{ formatMoney(totalGanancia) }}
+                  Ganancia Total: Bs {{ m_formatMoney(totalGanancia) }}
                 </q-item-label>
               </q-item-section>
             </q-item>
@@ -177,9 +177,6 @@ export default {
     }
   },
   methods: {
-    formatMoney(amount) {
-      return new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
-    },
     calcularGanancia(producto) {
       const venta = producto.valor_bs || 0;
       const costo = producto.costo_total_bs || 0;
@@ -195,7 +192,7 @@ export default {
         sum += this.ventas[i].total;
       }
       this.total = sum;
-      const monto_convertido = this.formatMoney(this.total);
+      const monto_convertido = this.m_formatMoney(this.total);
       const mensaje = `El total del sus ventas es de *Bs ${monto_convertido}*`
       const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(mensaje)}`
       this.url_whatsapp = url;

@@ -1,5 +1,5 @@
 <template>
-  <q-page class="q-pa-md bg-grey-1">
+  <q-page class="q-pa-md ">
     <div class="row items-center justify-between no-wrap q-mb-md">
       <div class="text-h5 text-primary text-weight-bold col">Cierre de Caja (Reporte Z)</div>
       <q-btn color="primary" icon-right="share" label="Compartir" outline @click="compartirReporte"
@@ -7,7 +7,7 @@
     </div>
 
     <!-- Date Filter -->
-    <q-card class="rounded-card shadow-1 q-mb-md bg-white">
+    <q-card class="rounded-card shadow-1 q-mb-md ">
       <q-card-section>
         <div class="row q-col-gutter-sm items-center">
           <div class="col-12 col-md-4">
@@ -39,28 +39,28 @@
         <q-card class="bg-primary text-white rounded-card shadow-2">
           <q-card-section>
             <div class="text-subtitle2 text-indigo-2">Venta Total</div>
-            <div class="text-h4 text-indigo-1 text-weight-bold">Bs {{ formatMoney(totalVenta) }}</div>
-            <div class="text-caption text-indigo-1" v-if="valor_dolar">
-              ≈ $ {{ formatMoneyUSD(totalVenta / valor_dolar) }}
+            <div class="text-h4 text-indigo-1 text-weight-bold">Bs {{ m_formatMoney(totalVenta) }}</div>
+            <div class="text-caption text-indigo-1" v-if="m_valor_dolar">
+              ≈ $ {{ m_formatMoneyUSD(totalVenta / m_valor_dolar) }}
             </div>
           </q-card-section>
         </q-card>
       </div>
 
       <div class="col-12 col-md-4">
-        <q-card class="bg-white text-dark rounded-card shadow-2">
+        <q-card class=" text-dark rounded-card shadow-2">
           <q-card-section>
             <div class="text-subtitle2 text-grey-7">Ganancia Estimada</div>
-            <div class="text-h4 text-weight-bold text-positive">Bs {{ formatMoney(totalGanancia) }}</div>
-            <div class="text-caption text-grey" v-if="valor_dolar">
-              ≈ $ {{ formatMoneyUSD(totalGanancia / valor_dolar) }}
+            <div class="text-h4 text-weight-bold text-positive">Bs {{ m_formatMoney(totalGanancia) }}</div>
+            <div class="text-caption text-grey" v-if="m_valor_dolar">
+              ≈ $ {{ m_formatMoneyUSD(totalGanancia / m_valor_dolar) }}
             </div>
           </q-card-section>
         </q-card>
       </div>
 
       <div class="col-12 col-md-4">
-        <q-card class="bg-white text-dark rounded-card shadow-2">
+        <q-card class=" text-dark rounded-card shadow-2">
           <q-card-section>
             <div class="text-subtitle2 text-grey-7">Transacciones</div>
             <div class="text-h4 text-weight-bold">{{ ventas.length }}</div>
@@ -79,9 +79,9 @@
             <q-avatar color="indigo-1" text-color="primary" icon="payments" size="md" class="q-mr-md" />
             <div>
               <div class="text-caption text-grey">{{ metodo || 'Sin especificar' }}</div>
-              <div class="text-h6 text-primary text-weight-bold">Bs {{ formatMoney(monto) }}</div>
-              <div class="text-caption text-grey-6" v-if="valor_dolar">
-                $ {{ formatMoneyUSD(monto / valor_dolar) }}
+              <div class="text-h6 text-primary text-weight-bold">Bs {{ m_formatMoney(monto) }}</div>
+              <div class="text-caption text-grey-6" v-if="m_valor_dolar">
+                $ {{ m_formatMoneyUSD(monto / m_valor_dolar) }}
               </div>
             </div>
           </q-card-section>
@@ -149,22 +149,22 @@
           <div v-if="tributos.cobrar_iva">
             <div class="row justify-between q-mt-xs">
               <div>Exento (E)</div>
-              <div>{{ formatMoney(fiscal.exento) }}</div>
+              <div>{{ m_formatMoney(fiscal.exento) }}</div>
             </div>
             <div class="row justify-between">
               <div>Base Imponible (G) 16%</div>
-              <div>{{ formatMoney(fiscal.base) }}</div>
+              <div>{{ m_formatMoney(fiscal.base) }}</div>
             </div>
             <div class="row justify-between">
               <div>Impuesto (IVA) 16%</div>
-              <div>{{ formatMoney(fiscal.iva) }}</div>
+              <div>{{ m_formatMoney(fiscal.iva) }}</div>
             </div>
           </div>
 
           <div v-if="tributos.cobrar_igtf && fiscal.igtf > 0">
             <div class="row justify-between">
               <div>IGTF (3%)</div>
-              <div>{{ formatMoney(fiscal.igtf) }}</div>
+              <div>{{ m_formatMoney(fiscal.igtf) }}</div>
             </div>
           </div>
 
@@ -172,7 +172,7 @@
           <div v-if="!tributos.cobrar_iva && !tributos.cobrar_igtf">
             <div class="row justify-between q-mt-xs">
               <div>Ventas Exentas</div>
-              <div>{{ formatMoney(totalVenta) }}</div>
+              <div>{{ m_formatMoney(totalVenta) }}</div>
             </div>
           </div>
 
@@ -180,7 +180,7 @@
 
           <div class="row justify-between text-h6 text-weight-bold">
             <div>TOTAL VENTAS</div>
-            <div>{{ formatMoney(totalVenta) }}</div>
+            <div>{{ m_formatMoney(totalVenta) }}</div>
           </div>
 
           <q-separator class="q-my-sm dashed" />
@@ -210,7 +210,6 @@ export default {
     return {
       fecha: date.formatDate(Date.now(), 'YYYY/MM/DD'),
       ventas: [],
-      valor_dolar: null,
       updated_at: '',
       modalFiscal: false,
       tipoReporte: 'Z',
@@ -311,7 +310,7 @@ export default {
   },
   methods: {
     async init() {
-      await this.getDolar();
+      await this.m_getDolar();
       await this.cargarConfig();
       await this.cargarDatos();
     },
@@ -333,10 +332,6 @@ export default {
         this.tributos = { ...taxes };
       }
     },
-    async getDolar() {
-      const result = await valor_dolarDAO.getInstance().getUltimo();
-      if (result) this.valor_dolar = result.valor_dolar;
-    },
     async cargarDatos() {
       this.$q.loading.show();
       try {
@@ -349,31 +344,25 @@ export default {
         this.$q.loading.hide();
       }
     },
-    formatMoney(amount) {
-      return new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
-    },
-    formatMoneyUSD(amount) {
-      return new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
-    },
     async imprimirFiscal() {
       await this.$nextTick();
       window.print();
     },
     compartirReporte() {
       let mensaje = `*Reporte Z - ${this.fecha}*\n\n`;
-      mensaje += `*Venta Total:* Bs ${this.formatMoney(this.totalVenta)}\n`;
-      if (this.valor_dolar) mensaje += `*Equivalente:* $ ${this.formatMoneyUSD(this.totalVenta / this.valor_dolar)}\n`;
+      mensaje += `*Venta Total:* Bs ${this.m_formatMoney(this.totalVenta)}\n`;
+      if (this.m_valor_dolar) mensaje += `*Equivalente:* $ ${this.m_formatMoneyUSD(this.totalVenta / this.m_valor_dolar)}\n`;
       mensaje += `*Transacciones:* ${this.ventas.length}\n\n`;
 
       mensaje += `*Desglose por Pago:*\n`;
       for (const [metodo, monto] of Object.entries(this.desglosePagos)) {
-        mensaje += `- ${metodo}: Bs ${this.formatMoney(monto)}\n`;
+        mensaje += `- ${metodo}: Bs ${this.m_formatMoney(monto)}\n`;
       }
 
       if (this.tributos.cobrar_iva) {
         mensaje += `\n*Fiscal:*\n`;
-        mensaje += `Base: ${this.formatMoney(this.fiscal.base)}\n`;
-        mensaje += `IVA: ${this.formatMoney(this.fiscal.iva)}\n`;
+        mensaje += `Base: ${this.m_formatMoney(this.fiscal.base)}\n`;
+        mensaje += `IVA: ${this.m_formatMoney(this.fiscal.iva)}\n`;
       }
 
       const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(mensaje)}`;

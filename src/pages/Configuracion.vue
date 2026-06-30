@@ -1,5 +1,5 @@
 <template>
-    <q-page class="q-pa-md bg-grey-1">
+    <q-page class="q-pa-md ">
         <div class="text-h5 text-primary text-weight-bold q-mb-md">Configuración</div>
 
         <div class="row q-col-gutter-md">
@@ -113,6 +113,28 @@
                         </q-list>
                     </q-card-section>
                 </q-card>
+
+                <!-- Section 5: Backup & Restore -->
+                <q-card class="rounded-card shadow-1 q-mt-md">
+                    <q-card-section>
+                        <div class="text-subtitle1 text-weight-bold">Base de Datos (Respaldo)</div>
+                        <div class="text-caption text-grey q-mb-md">
+                            Descarga un respaldo de tus datos o restaura una copia previa.
+                        </div>
+                        <div class="row q-col-gutter-sm">
+                            <div class="col-12 col-sm-6">
+                                <q-btn label="Descargar Respaldo" icon="download" color="primary" class="full-width" outline
+                                    @click="backupData" />
+                            </div>
+                            <div class="col-12 col-sm-6">
+                                <q-btn label="Restaurar Datos" icon="upload" color="negative" class="full-width" outline
+                                    @click="triggerRestore" />
+                                <input type="file" ref="restoreInput" style="display: none" accept=".json"
+                                    @change="restoreData" />
+                            </div>
+                        </div>
+                    </q-card-section>
+                </q-card>
             </div>
         </div>
     </q-page>
@@ -120,6 +142,7 @@
 
 <script>
 import { configuracionDAO } from '../db/configuracionDAO';
+import { exportDatabase, importDatabase } from '../db/db';
 
 export default {
     name: 'Configuracion',
@@ -236,6 +259,60 @@ export default {
                 console.error(e);
                 this.$q.notify({ type: 'negative', message: 'Error guardando configuración de sugerencias' });
             }
+        },
+        async backupData() {
+            try {
+                const data = await exportDatabase();
+                const blob = new Blob([data], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `bodeguita_backup_${new Date().toISOString().split('T')[0]}.json`;
+                link.click();
+                URL.revokeObjectURL(url);
+                this.$q.notify({ type: 'positive', message: 'Respaldo generado con éxito' });
+            } catch (e) {
+                console.error(e);
+                this.$q.notify({ type: 'negative', message: 'Error al generar respaldo' });
+            }
+        },
+        triggerRestore() {
+            this.$refs.restoreInput.click();
+        },
+        async restoreData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            this.$q.dialog({
+                title: '¡ADVERTENCIA CRÍTICA!',
+                message: 'Esta acción <b>SOBRESCRIBIRÁ</b> todos los datos actuales de la aplicación con la información del archivo. No se puede deshacer.<br><br>¿Deseas continuar?',
+                html: true,
+                cancel: true,
+                persistent: true,
+                ok: { label: 'Restaurar Todo', color: 'negative', unelevated: true }
+            }).onOk(async () => {
+                this.$q.loading.show({ message: 'Restaurando base de datos...' });
+                try {
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        try {
+                            await importDatabase(e.target.result);
+                            this.$q.loading.hide();
+                            this.$q.notify({ type: 'positive', message: 'Datos restaurados con éxito. Reiniciando...' });
+                            setTimeout(() => window.location.reload(), 1500);
+                        } catch (err) {
+                            this.$q.loading.hide();
+                            this.$q.notify({ type: 'negative', message: 'Archivo de respaldo inválido' });
+                        }
+                    };
+                    reader.readAsText(file);
+                } catch (e) {
+                    this.$q.loading.hide();
+                    this.$q.notify({ type: 'negative', message: 'Error al leer el archivo' });
+                }
+            }).onCancel(() => {
+                event.target.value = ''; // Reset input
+            });
         }
     }
 }

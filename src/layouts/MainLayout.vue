@@ -1,6 +1,6 @@
 <template>
-  <q-layout view="lHh Lpr lFf" class="bg-grey-1">
-    <q-header class="bg-white text-primary shadow-1">
+  <q-layout view="lHh Lpr lFf" :class="$q.dark.isActive ? 'bg-dark' : ''">
+    <q-header :class="$q.dark.isActive ? 'bg-dark' : ''" :text-color="$q.dark.isActive ? 'white' : 'primary'" class="shadow-1">
       <q-toolbar class="q-py-sm">
         <q-btn flat dense round icon="menu" aria-label="Menu" @click="leftDrawerOpen = !leftDrawerOpen" />
 
@@ -15,26 +15,37 @@
           </q-badge> -->
         </q-toolbar-title>
 
+        <q-btn flat round dense :icon="$q.dark.isActive ? 'light_mode' : 'dark_mode'" @click="toggleDarkMode" class="q-mr-sm">
+          <q-tooltip>{{ $q.dark.isActive ? 'Modo Claro' : 'Modo Oscuro' }}</q-tooltip>
+        </q-btn>
+
         <q-btn flat round color="primary" icon="info_outline" @click="m_acerca = true" />
       </q-toolbar>
     </q-header>
 
-    <q-drawer v-model="leftDrawerOpen" show-if-above bordered content-class="bg-white" :width="260">
+    <q-drawer v-model="leftDrawerOpen" show-if-above bordered :content-class="$q.dark.isActive ? 'bg-dark' : ''" :width="260">
       <q-scroll-area class="fit">
         <div class="q-pa-md text-center">
           <q-avatar size="80px" class="shadow-2">
             <img :src="getPublicPath('icons/icon-128x128.png')">
           </q-avatar>
-          <div class="text-h6 q-mt-md text-primary">Bodeguita</div>
+          <div class="text-h6 q-mt-md" :class="$q.dark.isActive ? 'text-white' : 'text-primary'">Bodeguita</div>
           <div class="text-caption text-grey">Administración</div>
         </div>
 
         <q-list padding class="text-grey-8">
           <q-item to="/" exact clickable v-ripple active-class="text-primary bg-indigo-1">
             <q-item-section avatar>
+              <q-icon name="dashboard" />
+            </q-item-section>
+            <q-item-section>Dashboard</q-item-section>
+          </q-item>
+
+          <q-item to="/venta" exact clickable v-ripple active-class="text-primary bg-indigo-1">
+            <q-item-section avatar>
               <q-icon name="shopping_cart" />
             </q-item-section>
-            <q-item-section>Venta</q-item-section>
+            <q-item-section>Nueva Venta</q-item-section>
           </q-item>
 
           <q-item to="/ventas" exact clickable v-ripple active-class="text-primary bg-indigo-1">
@@ -107,10 +118,11 @@
       <router-view />
     </q-page-container>
 
-    <q-footer bordered class="bg-white text-primary lt-md">
+    <q-footer bordered class=" text-primary lt-md">
       <q-tabs v-model="tab" active-color="primary" indicator-color="transparent" class="text-grey-6" align="justify"
         dense>
-        <q-route-tab name="venta" icon="shopping_cart" label="Venta" to="/" exact />
+        <q-route-tab name="dashboard" icon="dashboard" label="Inicio" to="/" exact />
+        <q-route-tab name="venta" icon="shopping_cart" label="Venta" to="/venta" exact />
         <q-route-tab name="ventas" icon="receipt_long" label="Ventas" to="/ventas" exact />
         <q-route-tab name="ventas-por-producto" icon="receipt_long" label="Ven. Prod." to="/ventas-por-producto"
           exact />
@@ -153,6 +165,8 @@
 </template>
 
 <script>
+import { configuracionDAO } from '../db/configuracionDAO';
+
 export default {
   name: 'MainLayout',
   data() {
@@ -162,7 +176,21 @@ export default {
       tab: 'venta'
     }
   },
+  async mounted() {
+    await this.loadTheme();
+  },
   methods: {
+    async loadTheme() {
+      const isDark = await configuracionDAO.getInstance().get('dark_mode');
+      if (isDark !== null) {
+        this.$q.dark.set(isDark);
+      }
+    },
+    async toggleDarkMode() {
+      const newState = !this.$q.dark.isActive;
+      this.$q.dark.set(newState);
+      await configuracionDAO.getInstance().save('dark_mode', newState);
+    },
     getPublicPath(url) {
       if (process.env.MODE === 'electron' || process.env.MODE === 'cordova') {
         return url;

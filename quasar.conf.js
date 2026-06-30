@@ -22,6 +22,7 @@ module.exports = function (/* ctx */) {
     boot: [
       'i18n',
       'axios',
+      'globals'
     ],
 
     // https://v1.quasar.dev/quasar-cli/quasar-conf-js#Property%3A-css
@@ -115,9 +116,7 @@ module.exports = function (/* ctx */) {
       plugins: ['Loading', 'Notify', 'Dialog']
     },
 
-    // animations: 'all', // --- includes all animations
-    // https://v1.quasar.dev/options/animations
-    animations: 'all',
+    animations: ['fadeIn', 'fadeOut', 'slideInUp', 'slideOutDown'],
 
     // https://v1.quasar.dev/quasar-cli/developing-ssr/configuring-ssr
     ssr: {

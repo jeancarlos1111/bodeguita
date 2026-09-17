@@ -21,10 +21,10 @@
                     </div>
                     <div class="col-12 col-md-6 text-right">
                         <div class="text-h6 text-primary">
-                            Total Mes: Bs {{ m_formatMoney(totalMes) }}
+                            Total Mes: Bs {{ $formatMoney(totalMes) }}
                         </div>
-                        <div class="text-caption text-grey">Base: {{ m_formatMoney(totalBase) }} | IVA: {{
-                            m_formatMoney(totalIVA) }} | IGTF: {{ m_formatMoney(totalIGTF) }}</div>
+                        <div class="text-caption text-grey">Base: {{ $formatMoney(totalBase) }} | IVA: {{
+                            $formatMoney(totalIVA) }} | IGTF: {{ $formatMoney(totalIGTF) }}</div>
                     </div>
                 </div>
             </q-card-section>
@@ -35,7 +35,7 @@
             :pagination.sync="pagination" no-data-label="No hay registros para este mes">
             <template v-slot:body-cell-fecha="props">
                 <q-td :props="props">
-                    {{ m_formatDate(props.row.create_at) }}
+                    {{ $formatDate(props.row.create_at) }}
                 </q-td>
             </template>
 
@@ -56,7 +56,7 @@
 
             <template v-slot:body-cell-total="props">
                 <q-td :props="props" class="text-weight-bold text-primary">
-                    {{ m_formatMoney(props.row.total) }}
+                    {{ $formatMoney(props.row.total) }}
                 </q-td>
             </template>
         </q-table>
@@ -89,11 +89,11 @@ export default {
                 { name: 'fecha', align: 'left', label: 'Fecha', field: 'create_at', sortable: true },
                 { name: 'factura', align: 'center', label: 'Nro Fact', field: 'numero_factura', sortable: true },
                 { name: 'cliente', align: 'left', label: 'Cliente (RIF/Nombre)', field: 'cliente_nombre' },
-                { name: 'total', align: 'right', label: 'Total Venta', field: 'total', format: val => this.m_formatMoney(val) },
-                { name: 'exento', align: 'right', label: 'Exento', field: 'monto_exento', format: val => this.m_formatMoney(val) },
-                { name: 'base', align: 'right', label: 'Base Imp.', field: 'monto_base', format: val => this.m_formatMoney(val) },
-                { name: 'iva', align: 'right', label: 'IVA (16%)', field: 'monto_iva', format: val => this.m_formatMoney(val) },
-                { name: 'igtf', align: 'right', label: 'IGTF (3%)', field: 'monto_igtf', format: val => this.m_formatMoney(val) }
+                { name: 'total', align: 'right', label: 'Total Venta', field: 'total', format: val => this.$formatMoney(val) },
+                { name: 'exento', align: 'right', label: 'Exento', field: 'monto_exento', format: val => this.$formatMoney(val) },
+                { name: 'base', align: 'right', label: 'Base Imp.', field: 'monto_base', format: val => this.$formatMoney(val) },
+                { name: 'iva', align: 'right', label: 'IVA (16%)', field: 'monto_iva', format: val => this.$formatMoney(val) },
+                { name: 'igtf', align: 'right', label: 'IGTF (3%)', field: 'monto_igtf', format: val => this.$formatMoney(val) }
             ]
         }
     },
@@ -129,7 +129,7 @@ export default {
                 const lastDay = new Date(this.anio, this.mes, 0).getDate();
                 const endDate = `${this.anio}/${strMonth}/${lastDay}`;
 
-                const ventas = await ventasDAO.getInstance().get(startDate, endDate);
+                const ventas = await ventasDAO.get(startDate, endDate);
 
                 // Enrich with client data if needed (some clients might be just ID)
                 // But for table display we just need basic info. 
@@ -140,7 +140,7 @@ export default {
                     let cedula = 'S/C';
                     // Try to find client if ID exists
                     if (v.cliente_id) {
-                        const client = await clientesDAO.getInstance().get(v.cliente_id);
+                        const client = await clientesDAO.get(v.cliente_id);
                         if (client) cedula = client.cedula;
                     }
                     return {
@@ -165,7 +165,7 @@ export default {
 
             this.ventasMensuales.forEach(v => {
                 const row = [
-                    this.m_formatDate(v.create_at),
+                    this.$formatDate(v.create_at),
                     String(v.numero_factura).padStart(6, '0'),
                     String(v.numero_factura).padStart(6, '0'), // Control same as Factura for now
                     `"${v.cliente_nombre || 'Cliente Genérico'}"`,

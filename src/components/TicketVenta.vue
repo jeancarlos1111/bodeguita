@@ -23,7 +23,7 @@
           <tr v-for="(item, index) in venta.productos" :key="index">
             <td class="text-left">{{ item.cantidad }}</td>
             <td class="text-left">{{ item.producto }}</td>
-            <td class="text-right">{{ m_formatMoney(item.valor_bs) }}</td>
+            <td class="text-right">{{ $formatMoney(item.valor_bs) }}</td>
           </tr>
         </tbody>
       </table>
@@ -33,25 +33,25 @@
     <div class="ticket-footer">
       <div class="row justify-between">
         <span>SUBTOTAL:</span>
-        <span>Bs {{ m_formatMoney(venta.monto_base + venta.monto_exento) }}</span>
+        <span>Bs {{ $formatMoney(venta.monto_base + venta.monto_exento) }}</span>
       </div>
       <div class="row justify-between" v-if="venta.monto_iva > 0">
         <span>IVA (16%):</span>
-        <span>Bs {{ m_formatMoney(venta.monto_iva) }}</span>
+        <span>Bs {{ $formatMoney(venta.monto_iva) }}</span>
       </div>
       <div class="row justify-between" v-if="venta.monto_igtf > 0">
         <span>IGTF (3%):</span>
-        <span>Bs {{ m_formatMoney(venta.monto_igtf) }}</span>
+        <span>Bs {{ $formatMoney(venta.monto_igtf) }}</span>
       </div>
       
       <div class="row justify-between text-bold text-large q-mt-sm">
         <span>TOTAL BS:</span>
-        <span>Bs {{ m_formatMoney(venta.total) }}</span>
+        <span>Bs {{ $formatMoney(venta.total) }}</span>
       </div>
 
       <div class="row justify-between text-italic" v-if="venta.tasa_dolar">
         <span>TOTAL USD:</span>
-        <span>$ {{ m_formatMoneyUSD(venta.total / venta.tasa_dolar) }}</span>
+        <span>$ {{ $formatMoneyUSD(venta.total / venta.tasa_dolar) }}</span>
       </div>
 
       <div class="divider">********************************</div>
@@ -82,7 +82,7 @@ export default {
     }
   },
   async mounted() {
-    const data = await configuracionDAO.getInstance().get('datos_negocio');
+    const data = await configuracionDAO.get('datos_negocio');
     if (data) {
       this.negocio = data;
     }

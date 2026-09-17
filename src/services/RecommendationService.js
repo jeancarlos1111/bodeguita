@@ -1,6 +1,6 @@
 import Worker from '../workers/recommendation.worker.js';
 
-console.log("!!! RECOMMENDATION SERVICE FILE LOADED !!!");
+
 
 class RecommendationService {
     constructor() {

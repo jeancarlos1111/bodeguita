@@ -43,7 +43,7 @@
         <!-- Moneda y Costo -->
         <div class="bg-grey-2 q-pa-sm rounded-borders">
           <q-toggle v-model="ingresarEnBs" 
-            :label="`Ingresar costo en Bs (Tasa: ${m_formatMoney(valorDolar)})`"
+            :label="`Ingresar costo en Bs (Tasa: ${$formatMoney(valorDolar)})`"
             color="primary" :disable="!valorDolar" />
             
           <q-input v-if="!ingresarEnBs" filled v-model.number="form.costo" type="number" 
@@ -69,13 +69,13 @@
           label="Cantidad Inicial" input-class="text-right" />
 
         <!-- Vista previa precio de venta -->
-        <div class="q-pa-md bg-indigo-1 rounded-borders text-center">
-          <div class="text-caption text-indigo-7">Precio de Venta Sugerido</div>
+        <div class="q-pa-md bg-green-1 rounded-borders text-center">
+          <div class="text-caption text-primary">Precio de Venta Sugerido</div>
           <div class="text-h5 text-weight-bold text-primary">
-            Bs {{ m_formatMoney(precioVentaBs) }}
+            Bs {{ $formatMoney(precioVentaBs) }}
           </div>
           <div class="text-subtitle1 text-grey-7">
-            $ {{ m_formatMoneyUSD(precioVentaUsd) }}
+            $ {{ $formatMoneyUSD(precioVentaUsd) }}
           </div>
         </div>
       </q-card-section>

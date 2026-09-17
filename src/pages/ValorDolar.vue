@@ -27,12 +27,12 @@
 
       <template v-slot:item="props">
         <div class="q-pa-xs col-xs-12 col-sm-6 col-md-4">
-          <q-card class="rounded-card shadow-1 transition-card" :class="props.selected ? 'bg-indigo-1' : ''">
+          <q-card class="rounded-card shadow-1 transition-card" :class="props.selected ? 'bg-green-1' : ''">
             <q-card-section class="row items-center justify-between">
               <div>
                 <div class="text-caption text-grey">Valor del Dólar</div>
                 <div class="text-h5 text-primary text-weight-bold">
-                  Bs {{ m_formatMoney(props.row.valor_dolar) }}
+                  Bs {{ $formatMoney(props.row.valor_dolar) }}
                 </div>
               </div>
               <q-checkbox v-model="props.selected" dense color="primary" />
@@ -41,7 +41,7 @@
             <q-card-section class="row items-center">
               <q-icon name="event" color="grey-7" size="sm" class="q-mr-sm" />
               <div class="text-subtitle2 text-grey-8">
-                {{ m_formatDateTime(props.row.create_at) }}
+                {{ $formatDateTime(props.row.create_at) }}
               </div>
             </q-card-section>
           </q-card>
@@ -110,10 +110,10 @@ export default {
           label: 'Valor Dolar',
           align: 'center',
           field: row => row.valor_dolar,
-          format: val => this.m_formatMoney(val),
+          format: val => this.$formatMoney(val),
           sortable: true
         },
-        { name: 'create_at', align: 'center', label: 'Fecha', field: 'create_at', sortable: true, format: val => this.m_formatDateTime(val) }
+        { name: 'create_at', align: 'center', label: 'Fecha', field: 'create_at', sortable: true, format: val => this.$formatDateTime(val) }
       ]
     }
   },
@@ -132,13 +132,13 @@ export default {
       this.m_nuevo_valor = false;
     },
     get() {
-      valor_dolarDAO.getInstance().get().then(result => { this.data = result });
+      valor_dolarDAO.get().then(result => { this.data = result });
     },
     save() {
       this.$q.loading.show();
-      this.form.create_at = this.m_fechaCreacion;
+      this.form.create_at = this.$getFechaCreacion();
       this.form.valor_dolar = parseFloat(this.form.valor_dolar);
-      valor_dolarDAO.getInstance().save(this.form).then(() => {
+      valor_dolarDAO.save(this.form).then(() => {
         this.m_nuevo_valor = false;
         this.form = new ValorDolar();
         this.get();
@@ -167,7 +167,7 @@ export default {
           persistent: true
         }).onOk(() => {
           this.$q.loading.show();
-          valor_dolarDAO.getInstance().delete(this.selected[0].id).then(() => {
+          valor_dolarDAO.delete(this.selected[0].id).then(() => {
             this.selected = [];
             this.get();
             this.$q.loading.hide();

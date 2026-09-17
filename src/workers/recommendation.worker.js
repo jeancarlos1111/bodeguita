@@ -6,13 +6,13 @@ import { db } from '../db/db';
  * En producción debería ser mayor (ej. 30).
  * Se mantiene en 0 para facilitar pruebas inmediatas.
  */
-const STAGNANT_DAYS = 0; 
+const STAGNANT_DAYS = 30; 
 
 // ESTADO GLOBAL DEL WORKER
 let coOccurrenceMatrix = {};   // Matriz de co-ocurrencia: { productoA: { productoB: frecuencia, ... } }
 let stagnantProducts = [];     // Lista cacheada de productos estancados
 
-console.log("[Worker] Worker initialized");
+
 
 // Importamos la función de inicialización y la lógica del paquete WASM generado
 // Nota: Este archivo se generará tras ejecutar 'npm run build:wasm'

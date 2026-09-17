@@ -1,241 +1,273 @@
 <template>
-  <q-page :class="$q.dark.isActive ? 'bg-dark' : ''" class="q-pa-md q-pb-xl">
+  <q-page :class="$q.dark.isActive ? 'bg-dark' : 'bg-slate-50'" class="q-pb-xl">
+    <div class="pos-container q-mx-auto q-px-sm-md q-py-sm">
 
-    <!-- Input Section -->
-    <q-card class="rounded-card q-mb-md shadow-1" :class="$q.dark.isActive ? 'bg-grey-9' : ''">
-      <q-card-section>
-        <!-- Categories Filter -->
-        <div class="q-mb-md scroll no-wrap row q-gutter-xs" v-if="categorias.length > 0">
-          <q-chip clickable :outline="filtroCategoria !== null" color="primary" text-color="white" icon="list"
-            @click="setFiltroCategoria(null)" label="Todos" />
-          <q-chip v-for="cat in categorias" :key="cat.id" clickable :outline="filtroCategoria !== cat.id"
-            color="primary" text-color="white" @click="setFiltroCategoria(cat.id)">
-            {{ cat.nombre }}
+      <!-- 1. Barra Superior Profesional (Screenshot 1 y 2) -->
+      <div class="row items-center justify-between q-py-xs q-mb-sm">
+        <div class="row items-center">
+          <q-btn flat round dense icon="chevron_left" color="grey-8" size="md" to="/" class="q-mr-xs"
+            title="Ir al Dashboard" />
+          <div class="text-h5 text-weight-bold text-grey-9 q-mr-sm" :class="$q.dark.isActive ? 'text-white' : ''">
+            Venta
+          </div>
+          <!-- Badge sutil de estado (Screenshot 1: Plan Pro) -->
+          <!-- <div class="status-pill row items-center q-px-sm q-py-xs">
+            <span class="status-dot q-mr-xs"></span>
+            <span class="text-caption text-weight-bold text-primary">Bodeguita POS</span>
+          </div> -->
+        </div>
+
+        <div class="row items-center q-gutter-x-xs">
+          <!-- Tasa de Dólar rápida -->
+          <q-chip v-if="$valor_dolar" dense clickable @click="getProdutos(); $getDolar()"
+            class="bg-white text-grey-8 soft-shadow cursor-pointer lt-sm" style="font-size: 11px;">
+            ${{ $formatMoney($valor_dolar) }}
           </q-chip>
-        </div>
-
-        <div class="row q-col-gutter-sm">
-          <div class="col-12 col-sm-7">
-            <q-select ref="productoSelect" filled autofocus v-model="producto" use-input hide-selected fill-input
-              input-debounce="0" :options="options" @filter="filterFn" label="Buscar Producto / Código de barras"
-              color="primary" behavior="menu" class="rounded-borders" @new-value="onNewValue"
-              option-label="nombre" emit-value map-options option-value="nombre">
-              <template v-slot:no-option>
-                <q-item>
-                  <q-item-section class="text-grey">Sin resultados</q-item-section>
-                </q-item>
-              </template>
-              <template v-slot:prepend>
-                <q-icon name="search" />
-              </template>
-            </q-select>
-          </div>
-          <!-- Botón Escanear Barras/QR (Cámara) -->
-          <div class="col-auto flex items-center" style="padding-top: 4px">
-            <barcode-scanner color="indigo" mode="single" @scanned="escanearEnCaja" />
-          </div>
-          <div class="col-4 col-sm-2">
-            <q-input filled v-model.number="cantidad" type="number" label="Cant." color="primary" min="1"
-              class="rounded-borders" />
-          </div>
-          <div class="col col-sm-2">
-            <q-btn color="primary" icon="add_shopping_cart" class="full-width full-height shadow-0 rounded-borders"
-              @click="agregarListaCompra" label="Agregar" />
-          </div>
-        </div>
-      </q-card-section>
-    </q-card>
-
-    <!-- List Section -->
-    <div v-if="lista_compras.length > 0" class="q-mb-xl" style="padding-bottom: 80px">
-      <div class="row items-center justify-between q-mb-sm">
-        <div class="text-h6 text-grey-8">Carrito ({{ lista_compras.length }})</div>
-        <q-btn flat dense color="negative" label="Limpiar" @click="lista_compras = []; total = 0" size="sm" />
-      </div>
-
-      <div class="row q-col-gutter-sm">
-        <div v-for="(item, index) in lista_compras" :key="item.id" class="col-12 col-md-6">
-          <q-card class="rounded-card shadow-1">
-            <q-item class="q-py-md">
-              <q-item-section avatar top>
-                <q-avatar color="indigo-1" text-color="primary" icon="inventory_2" />
-              </q-item-section>
-
-              <q-item-section>
-                <q-item-label class="text-weight-bold text-dark" style="line-height: 1.2; margin-bottom: 4px;">{{ item.producto }}</q-item-label>
-                <q-item-label caption class="q-mb-sm">Stock: {{ item.existencia }}</q-item-label>
-                
-                <div class="row items-center no-wrap bg-grey-2 rounded-borders" style="width: fit-content;">
-                  <q-btn flat dense color="negative" icon="remove" size="sm" class="q-px-sm"
-                    @click="cambiarCantidadItem(index, -1)" />
-                  <div class="text-weight-bold text-dark q-px-xs" style="min-width: 28px; text-align: center;">
-                    {{ item.cantidad }}
-                  </div>
-                  <q-btn flat dense color="positive" icon="add" size="sm" class="q-px-sm"
-                    @click="cambiarCantidadItem(index, 1)" />
-                  <q-separator vertical />
-                  <q-btn flat dense color="warning" icon="delete_outline" size="sm" class="q-px-sm"
-                    @click="eliminarProductoLista(index)" />
-                </div>
-              </q-item-section>
-
-              <q-item-section side top class="text-right">
-                <div class="text-weight-bold text-primary">
-                  Bs {{ m_formatMoney(item.valor_bs) }}
-                </div>
-                <div class="text-caption text-grey" v-if="m_valor_dolar">
-                  $ {{ m_formatMoneyUSD(item.valor_bs / m_valor_dolar) }}
-                </div>
-              </q-item-section>
-            </q-item>
-          </q-card>
+          <q-btn flat round dense icon="history" color="grey-7" to="/ventas" title="Historial de Ventas" />
+          <q-btn flat round dense icon="refresh" color="grey-7" @click="recargarDatos" title="Recargar Productos" />
         </div>
       </div>
-    </div>
 
-    <div v-else class="text-center q-mt-xl text-grey-5">
-      <q-icon name="shopping_cart" size="64px" class="q-mb-md" />
-      <div class="text-h6">Carrito vacío</div>
-      <div class="text-caption">Agrega productos para comenzar</div>
-    </div>
+      <!-- 2. Selector Segmentado en Píldora: [ Productos ] / [ Escanear ] -->
+      <div class="row items-center justify-center q-mb-md">
+        <div class="segmented-pill-container row no-wrap" :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-2'">
+          <button type="button" class="pill-tab-btn row items-center"
+            :class="{ 'pill-tab-active': activeTab === 'productos' }" @click="activeTab = 'productos'">
+            <q-icon name="add" size="18px" class="q-mr-xs" />
+            <span>Productos</span>
+          </button>
 
-    <!-- Sticky Total Footer (Mobile) -->
-    <!-- Sticky Total Footer (Mobile) -->
-    <q-page-sticky position="bottom" :offset="[0, 0]" class="lt-md" expand v-if="lista_compras.length > 0"
-      style="z-index: 2000">
-      <div class="q-pa-md shadow-up-2 row items-center justify-between full-width"
-        :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'"
-        style="border-top-left-radius: 16px; border-top-right-radius: 16px;">
-        <div>
-          <div class="text-caption text-grey">Total a Pagar</div>
-          <div class="text-h6 text-primary text-weight-bold">
-            Bs {{ m_formatMoney(total) }}
+          <button type="button" class="pill-tab-btn row items-center"
+            :class="{ 'pill-tab-active': activeTab === 'escanear' }" @click="activeTab = 'escanear'">
+            <q-icon name="qr_code_scanner" size="18px" class="q-mr-xs" />
+            <span>Escanear</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 3. PESTAÑA 1: MODO CATÁLOGO / PRODUCTOS -->
+      <div v-show="activeTab === 'productos'" class="fade-in-section">
+        <!-- Cabecera de Catálogo -->
+        <div class="row items-center justify-between q-mb-sm q-px-xs">
+          <div class="row items-center">
+            <div class="text-subtitle1 text-weight-bold text-grey-9" :class="$q.dark.isActive ? 'text-white' : ''">
+              Agregar productos
+            </div>
           </div>
-          <div class="text-subtitle2 text-grey-7" v-if="m_valor_dolar">
-            $ {{ m_formatMoneyUSD(total / m_valor_dolar) }}
+          <div class="text-caption text-grey-6">
+            {{ productosFiltrados.length }} disponibles
           </div>
         </div>
-        <q-btn color="primary" label="Pagar" icon="payments" @click="confirmPaymentDialog = true" rounded unelevated
-          class="q-px-lg" />
-      </div>
-    </q-page-sticky>
 
-    <!-- Desktop Total Footer (Sticky) -->
-    <q-page-sticky position="bottom" :offset="[0, 0]" class="gt-sm" expand v-if="lista_compras.length > 0"
-      style="z-index: 2000">
-      <div class="bg-primary text-white shadow-up-2 row items-center justify-between full-width q-px-xl q-py-md">
-        <div class="row items-center q-gutter-x-md">
-          <div class="text-subtitle1 text-indigo-2">Total a Pagar:</div>
-          <div class="text-h4 text-indigo-2 text-weight-bold">Bs {{ m_formatMoney(total) }}</div>
-          <div class="text-h5 text-indigo-2" v-if="m_valor_dolar">
-            $ {{ m_formatMoneyUSD(total / m_valor_dolar) }}
-          </div>
-        </div>
-        <q-btn color="white" text-color="primary" label="Pagar" icon="payments" @click="confirmPaymentDialog = true"
-          rounded unelevated size="lg" class="q-px-xl" />
-      </div>
-    </q-page-sticky>
-
-
-    <!-- Payment Confirmation Dialog -->
-    <q-dialog v-model="confirmPaymentDialog">
-      <q-card style="min-width: 350px; border-radius: 16px;">
-        <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6 text-primary">Confirmar Pago</div>
-          <q-space />
-          <q-btn icon="close" flat round dense v-close-popup />
-        </q-card-section>
- 
-        <q-card-section>
-          <div class="text-subtitle1 q-mb-md">
-            ¿Deseas procesar la venta por <span class="text-weight-bold">Bs {{ m_formatMoney(total) }}</span>?
-          </div>
-
-          <q-select filled v-model="form.metodo_pago" :options="paymentOptions" label="Método de Pago" class="q-mb-sm"
-            :rules="[val => !!val || 'Requerido']">
+        <!-- Buscador tipo Píldora (Screenshot 3: 'Buscar por código, barras o nombre') -->
+        <div class="q-mb-sm">
+          <q-input outlined dense rounded v-model="catalogoSearch" :debounce="250" placeholder="Buscar por código, barras o nombre"
+            bg-color="white" class="search-pill-input" clearable>
             <template v-slot:prepend>
-              <q-icon name="payments" />
+              <q-icon name="search" color="grey-6" />
             </template>
-          </q-select>
+          </q-input>
+        </div>
 
-          <div class="text-caption text-grey" v-if="m_valor_dolar">
-            Equivalente a $ {{ m_formatMoneyUSD(total / m_valor_dolar) }}
+        <!-- Filtro Horizontal de Categorías (Screenshot 3) -->
+        <div class="category-scroll-row row no-wrap q-py-xs q-mb-md q-gutter-x-xs no-scrollbar">
+          <div class="filter-pill" :class="filtroCategoria === null ? 'filter-pill-active' : 'filter-pill-inactive'"
+            @click="setFiltroCategoria(null)">
+            Todos
           </div>
 
-          <q-input filled v-model="observaciones" label="Observaciones / Notas" class="q-mt-sm" autogrow
-            placeholder="Ej: Entregar a domicilio, Cliente conocido..." dense />
-        </q-card-section>
+          <div v-for="(cat, idx) in categorias" :key="cat.id" class="filter-pill" :class="[
+            filtroCategoria === cat.id ? 'filter-pill-active' : 'filter-pill-inactive',
+            getCategoryPastelClass(idx)
+          ]" @click="setFiltroCategoria(cat.id)">
+            {{ cat.nombre }}
+          </div>
+        </div>
 
-        <q-card-actions align="right" class="q-pt-none q-pb-md q-px-md">
-          <q-btn flat label="Cancelar" color="grey" v-close-popup />
-          <q-btn unelevated label="Confirmar" color="primary" @click="confirmAndSave" v-close-popup />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+        <!-- Lista de Tarjetas de Producto con Carga Progresiva (Infinite Scroll) -->
+        <q-infinite-scroll ref="infiniteScroll" @load="onLoadMore" :offset="300" :disable="displayLimit >= productosFiltrados.length">
+          <div class="column q-gutter-y-xs q-mb-xl" style="padding-bottom: 70px;">
+            <div v-for="prod in productosVisibles" :key="prod.id"
+              class="modern-card product-catalog-card q-pa-sm row items-center justify-between"
+              :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'">
+              <div class="row items-center no-wrap col ellipsis q-pr-sm">
+                <!-- Miniatura con ícono / empaque -->
+                <div class="catalog-thumb flex flex-center q-mr-sm">
+                  <q-icon name="inventory_2" size="24px" color="primary" />
+                </div>
 
-    <!-- Client Dialog for Fiado -->
-    <q-dialog v-model="clienteDialog" persistent>
-      <q-card style="min-width: 350px; border-radius: 16px;">
-        <q-card-section class="row items-center">
-          <div class="text-h6 text-primary">Cliente para Fiado</div>
-          <q-space />
-          <q-btn icon="close" flat round dense v-close-popup />
-        </q-card-section>
+                <!-- Textos del producto (Screenshot 3) -->
+                <div class="col ellipsis">
+                  <div class="text-weight-bold text-body2 ellipsis"
+                    :class="$q.dark.isActive ? 'text-white' : 'text-grey-9'">
+                    {{ prod.nombre }}
+                  </div>
+                  <!-- Código de barras / SKU en mayúscula gris -->
+                  <div class="text-caption text-grey-6 text-weight-medium ellipsis text-uppercase"
+                    style="font-size: 11px;">
+                    {{ prod.codigo_barras || 'SIN-CÓDIGO' }}
+                  </div>
+                  <!-- Precio y Stock -->
+                  <div class="text-caption text-weight-bold text-grey-8 row items-center q-gutter-x-xs"
+                    style="font-size: 12px;">
+                    <span class="text-primary">Bs {{ $formatMoney(calcularPrecioBs(prod)) }}</span>
+                    <span class="text-grey-5">·</span>
+                    <span class="text-grey-6">Stock: {{ prod.cantidad }}</span>
+                    <span v-if="$valor_dolar" class="text-grey-5">
+                      · ${{ $formatMoneyUSD(calcularPrecioUSD(prod)) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-        <q-card-section>
-          <div class="row q-col-gutter-sm items-end">
-            <div class="col">
-              <q-input filled v-model="cedulaSearch" label="Cédula" @keyup.enter="buscarCliente" autofocus />
+              <!-- Control de Cantidad: [ Menos ] [ Casilla Número ] [ Más ] -->
+              <div class="col-auto">
+                <!-- Si el producto ya está en el carrito (producto agregado) -->
+                <div v-if="getProductCartQty(prod.id) > 0"
+                  class="catalog-stepper-control row items-center no-wrap"
+                  :class="$q.dark.isActive ? 'bg-grey-8' : 'bg-slate-100'">
+                  <!-- 1. Botón Menos -->
+                  <button
+                    type="button"
+                    class="catalog-stepper-btn btn-minus flex flex-center cursor-pointer"
+                    @click.stop="disminuirProducto(prod)"
+                    title="Disminuir cantidad"
+                  >
+                    <q-icon name="remove" size="16px" :color="$q.dark.isActive ? 'white' : 'grey-8'" />
+                  </button>
+
+                  <!-- 2. Casilla para ingresar el número -->
+                  <input
+                    type="number"
+                    inputmode="numeric"
+                    class="catalog-qty-input text-center text-weight-bold"
+                    :class="$q.dark.isActive ? 'catalog-qty-input-dark' : 'catalog-qty-input-light'"
+                    :value="getProductCartQty(prod.id)"
+                    min="1"
+                    :max="prod.cantidad"
+                    @click.stop
+                    @focus="$event.target.select()"
+                    @change="onQtyInputChange(prod, $event.target.value, $event)"
+                    @keydown.enter="$event.target.blur()"
+                    title="Ingresar cantidad"
+                  />
+
+                  <!-- 3. Botón Más -->
+                  <button
+                    type="button"
+                    class="catalog-stepper-btn btn-plus flex flex-center cursor-pointer"
+                    @click.stop="aumentarProducto(prod)"
+                    title="Aumentar cantidad"
+                    :disabled="getProductCartQty(prod.id) >= prod.cantidad"
+                  >
+                    <q-icon name="add" size="16px" color="primary" />
+                  </button>
+                </div>
+
+                <!-- Si no ha sido agregado, botón circular simple (+) -->
+                <button v-else
+                  type="button"
+                  class="catalog-qty-badge badge-empty flex flex-center cursor-pointer"
+                  @click="agregarProductoDirecto(prod)"
+                  title="Agregar al carrito"
+                >
+                  <q-icon name="add" size="18px" />
+                </button>
+              </div>
             </div>
-            <div class="col-auto">
-              <q-btn icon="search" color="primary" @click="buscarCliente" class="q-mb-sm" round unelevated />
+
+            <div v-if="productosFiltrados.length === 0" class="text-center q-py-xl text-grey-5">
+              <q-icon name="search_off" size="48px" class="q-mb-sm" />
+              <div class="text-subtitle1">No se encontraron productos</div>
+              <div class="text-caption">Intenta con otro término de búsqueda o categoría</div>
             </div>
           </div>
-        </q-card-section>
 
-        <q-card-section v-if="clienteFound === false">
-          <div class="text-subtitle2 text-orange q-mb-sm">Cliente no encontrado. Registrar nuevo:</div>
-          <q-input filled v-model="clienteForm.nombre" label="Nombre y Apellido" class="q-mb-sm" />
-          <q-input filled v-model="clienteForm.telefono" label="Teléfono" class="q-mb-sm" />
-        </q-card-section>
+          <template v-slot:loading>
+            <div class="row justify-center q-my-sm">
+              <q-spinner-dots color="primary" size="30px" />
+            </div>
+          </template>
+        </q-infinite-scroll>
+      </div>
 
-        <q-card-section v-if="clienteFound">
-          <div class="text-subtitle1 text-indigo-10">
-            <strong>Cliente:</strong> {{ clienteFound.nombre }} <br>
-            <small>{{ clienteFound.telefono }}</small>
+      <!-- 4. PESTAÑA 2: MODO ESCÁNER -->
+      <div v-show="activeTab === 'escanear'" class="fade-in-section">
+        <!-- Visor de cámara en vivo embebido -->
+        <div class="scanner-card-wrapper q-mb-sm">
+          <barcode-scanner v-if="activeTab === 'escanear'" ref="barcodeScannerRef" :inline="true" :auto-start="true" mode="continuous"
+            @scanned="escanearEnCaja" @close="activeTab = 'productos'" />
+        </div>
+
+        <!-- Notificación Toast Inmediata estilo Píldora Verde -->
+        <transition name="slide-toast">
+          <div v-if="scanBanner.show"
+            class="scan-success-banner row items-center justify-between q-py-sm q-px-md q-mb-md">
+            <div class="row items-center no-wrap ellipsis text-white text-body2 text-weight-medium">
+              <q-icon name="check_circle" size="18px" class="q-mr-sm" />
+              <span class="ellipsis">{{ scanBanner.text }}</span>
+            </div>
+            <q-btn flat round dense icon="close" size="xs" color="white" @click="scanBanner.show = false" />
           </div>
-        </q-card-section>
+        </transition>
 
-        <q-card-actions align="right">
-          <q-btn flat label="Cancelar" color="grey" v-close-popup />
+        <!-- Lista de Carrito o Estado Vacío -->
+        <CartList :items="lista_compras" @clear="limpiarCarrito" @change-qty="handleQtyChange"
+          @remove="eliminarProductoLista" />
+      </div>
 
-          <q-btn v-if="clienteFound === false" label="Registrar y Procesar" color="primary"
-            @click="registrarYContinuar" />
-          <q-btn v-if="clienteFound" label="Confirmar Fiado" color="primary" @click="confirmarFiadoExistente" />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+      <!-- 5. Barra Flotante Inferior Sticky (Screenshots 2 y 4) -->
+      <q-page-sticky position="bottom" :offset="[0, 0]" expand v-if="lista_compras.length > 0" style="z-index: 1000;">
+        <div class="sticky-bottom-bar row items-center justify-between full-width q-px-md q-py-sm shadow-up-3"
+          :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'">
+          <div>
+            <div class="text-caption text-grey-6 text-weight-medium">
+              {{ totalProductosCount }} {{ totalProductosCount === 1 ? 'producto' : 'productos' }}
+            </div>
+            <div class="row items-baseline q-gutter-x-sm">
+              <span class="text-h6 text-weight-bold text-primary">
+                Total: Bs {{ $formatMoney(total) }}
+              </span>
+              <span class="text-caption text-grey-6 text-weight-bold" v-if="$valor_dolar">
+                ≈ ${{ $formatMoneyUSD(total / $valor_dolar) }}
+              </span>
+            </div>
+          </div>
 
-    <!-- Ticket Dialog -->
-    <q-dialog v-model="m_ticket_dialog" persistent>
-      <q-card style="min-width: 320px; border-radius: 16px;">
-        <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6 text-primary">Venta Completada</div>
-          <q-space />
-          <q-btn icon="close" flat round dense v-close-popup />
-        </q-card-section>
+          <q-btn unelevated color="primary" class="pill-btn-active q-px-lg text-weight-bold" label="Revisar orden"
+            icon-right="arrow_forward" @click="confirmPaymentDialog = true" />
+        </div>
+      </q-page-sticky>
 
-        <q-card-section class="flex flex-center">
-          <ticket-venta v-if="ultimaVenta" :venta="ultimaVenta" ref="ticketComponent" />
-        </q-card-section>
+      <!-- 6. Diálogo 'Revisar orden' (Screenshot 4) -->
+      <PaymentDialog v-model="confirmPaymentDialog" :total="total" :items="lista_compras"
+        :cliente-nombre="form.cliente_nombre" @select-client="clienteDialog = true" @confirm="onPaymentConfirm" />
 
-        <q-card-actions align="center" class="q-pb-md">
-          <q-btn unelevated label="Imprimir Ticket" color="primary" icon="print" @click="imprimirTicket" />
-          <q-btn flat label="Nueva Venta" color="grey" v-close-popup />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+      <!-- 7. Diálogo de Selección de Cliente / Fiado -->
+      <FiadoDialog v-model="clienteDialog" @confirm="onClienteSelect" />
 
+      <!-- 8. Diálogo de Ticket de Venta Completada -->
+      <q-dialog v-model="m_ticket_dialog" persistent>
+        <q-card style="min-width: 320px; border-radius: 20px;">
+          <q-card-section class="row items-center q-pb-none">
+            <div class="text-h6 text-primary text-weight-bold">Venta Exitosa</div>
+            <q-space />
+            <q-btn icon="close" flat round dense v-close-popup />
+          </q-card-section>
+
+          <q-card-section class="flex flex-center q-py-md">
+            <ticket-venta v-if="ultimaVenta" :venta="ultimaVenta" ref="ticketComponent" />
+          </q-card-section>
+
+          <q-card-actions align="center" class="q-pb-md q-gutter-x-sm">
+            <q-btn unelevated label="Imprimir Ticket" color="primary" icon="print" class="pill-btn"
+              @click="imprimirTicket" />
+            <q-btn flat label="Nueva Venta" color="grey-8" class="pill-btn" v-close-popup />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+
+    </div>
   </q-page>
 </template>
 
@@ -256,300 +288,493 @@ import { Clientes } from '../models/Clientes';
 import Decimal from 'decimal.js';
 import BarcodeScanner from '../components/BarcodeScanner.vue';
 import TicketVenta from '../components/TicketVenta.vue';
+import CartList from '../components/CartList.vue';
+import PaymentDialog from '../components/PaymentDialog.vue';
+import FiadoDialog from '../components/FiadoDialog.vue';
 
 export default {
   name: 'PageIndex',
-  components: { BarcodeScanner, TicketVenta },
+  components: { BarcodeScanner, TicketVenta, CartList, PaymentDialog, FiadoDialog },
   data() {
     return {
+      // Estado de interfaz
+      activeTab: 'productos', // 'productos' | 'escanear'
+      catalogoSearch: '',
+      scanBanner: {
+        show: false,
+        text: '',
+        timer: null
+      },
+
+      // Carrito y ventas
       lista_compras: [],
       form: new Ventas(),
       total: 0,
-      cantidad: 1,
-      producto: null,
-      options: [],
-      stringOptions: [],
-      barcodeMap: {},   // { codigo_barras: nombre_producto }
-      recommendedProduct: null,
-      confirmPaymentDialog: false,
-      m_ticket_dialog: false,
-      ultimaVenta: null,
-      paymentOptions: ['Efectivo Bs', 'Efectivo $', 'Pago Móvil', 'Punto de Venta', 'Zelle', 'Fiado'],
-      categorias: [],
-      filtroCategoria: null,
+      totalConIGTF: 0,
+      montoIGTF: 0,
+      descuentoTotal: 0,
       observaciones: '',
 
-      // Client/Fiado Logic
-      clienteDialog: false,
-      clienteFound: null,
-      clienteForm: new Clientes(),
-      cedulaSearch: '',
+      // Opciones de catálogo
+      stringOptions: [],
+      barcodeMap: {},
+      categorias: [],
+      filtroCategoria: null,
+      batchSize: 10,
+      displayLimit: 10,
 
-      // Tax Logic
+      // Modales y flujo
+      confirmPaymentDialog: false,
+      clienteDialog: false,
+      m_ticket_dialog: false,
+      ultimaVenta: null,
+      recommendedProduct: null,
+
+      // Tributos y sugerencias
       tributos: {
         cobrar_iva: false,
         cobrar_igtf: false
       },
       sugerencias_activas: true,
-      montoIGTF: 0,
-      totalConIGTF: 0,
 
-      // Listener global de lector de código de barras externo
+      // Listener de teclado para lector de código de barras físico USB / Bluetooth
       _barcodeBuffer: '',
       _barcodeTimer: null,
       _barcodeKeyHandler: null
-    }
+    };
   },
   computed: {
+    totalProductosCount() {
+      return this.lista_compras.reduce((acc, el) => acc + (el.cantidad || 0), 0);
+    },
+    productosFiltrados() {
+      let list = this.stringOptions || [];
+      if (this.filtroCategoria !== null) {
+        list = list.filter(p => p.categoria_id === this.filtroCategoria);
+      }
+      if (this.catalogoSearch && this.catalogoSearch.trim()) {
+        const q = this.catalogoSearch.trim().toLowerCase();
+        list = list.filter(p => {
+          const matchName = (p.nombre || '').toLowerCase().includes(q);
+          const matchCode = (p.codigo_barras || '').toLowerCase().includes(q);
+          return matchName || matchCode;
+        });
+      }
+      return list;
+    },
+    cartQtyMap() {
+      const map = {};
+      const list = this.lista_compras;
+      for (let i = 0; i < list.length; i++) {
+        map[list[i].id] = list[i].cantidad;
+      }
+      return map;
+    },
+    productosVisibles() {
+      return this.productosFiltrados.slice(0, this.displayLimit);
+    }
   },
   watch: {
-    'form.metodo_pago'(val) {
-      if (['Efectivo $', 'Zelle'].includes(val) && this.tributos.cobrar_igtf) {
-        this.calcularIGTF();
-      } else {
-        this.montoIGTF = 0;
-        this.totalConIGTF = this.total;
+    catalogoSearch() {
+      this.displayLimit = this.batchSize;
+      if (this.$refs.infiniteScroll) {
+        this.$refs.infiniteScroll.reset();
+        this.$refs.infiniteScroll.resume();
+      }
+    },
+    filtroCategoria() {
+      this.displayLimit = this.batchSize;
+      if (this.$refs.infiniteScroll) {
+        this.$refs.infiniteScroll.reset();
+        this.$refs.infiniteScroll.resume();
       }
     }
   },
   mounted() {
-    this.getProdutos();
-    this.m_getDolar();
-    this.loadConfig();
-    this.loadCategorias();
+    this.batchSize = this.calcBatchSize();
+    this.displayLimit = this.batchSize;
+    this.recargarDatos();
     recommendationService.init();
     this.initBarcodeListener();
   },
   beforeDestroy() {
     this.destroyBarcodeListener();
+    if (this.scanBanner.timer) {
+      clearTimeout(this.scanBanner.timer);
+    }
   },
   methods: {
+    async recargarDatos() {
+      await Promise.all([
+        this.getProdutos(),
+        this.loadCategorias(),
+        this.loadConfig(),
+        this.$getDolar()
+      ]);
+    },
     async loadCategorias() {
-      this.categorias = await categoriasDAO.getInstance().get();
+      try {
+        this.categorias = await categoriasDAO.get();
+      } catch (e) {
+        console.error('Error cargando categorías:', e);
+      }
     },
     setFiltroCategoria(id) {
       this.filtroCategoria = id;
-      this.producto = null; // Clear selection to avoid confusion
+    },
+    getCategoryPastelClass(idx) {
+      const colors = ['chip-pastel-blue', 'chip-pastel-purple', 'chip-pastel-teal', 'chip-pastel-amber'];
+      return colors[idx % colors.length];
     },
     async loadConfig() {
-      const taxes = await configuracionDAO.getInstance().get('tributos');
-      if (taxes) {
-        this.tributos = { ...taxes };
-      }
-      const sug = await configuracionDAO.getInstance().get('sugerencias_activas');
-      if (sug !== null) {
-        this.sugerencias_activas = sug;
+      try {
+        const taxes = await configuracionDAO.get('tributos');
+        if (taxes) this.tributos = { ...taxes };
+        const sug = await configuracionDAO.get('sugerencias_activas');
+        if (sug !== null) this.sugerencias_activas = sug;
+      } catch (e) {
+        console.error('Error cargando configuración:', e);
       }
     },
-    getProdutos() {
-      productosDAO.getInstance().get().then(result => {
-        result.forEach(element => {
-          this.stringOptions.push(element);
+    async getProdutos() {
+      try {
+        const result = await productosDAO.get();
+        this.stringOptions = result || [];
+        this.barcodeMap = {};
+        this.stringOptions.forEach(element => {
           if (element.codigo_barras) {
             this.barcodeMap[element.codigo_barras.trim()] = element.nombre;
           }
         });
-      });
-    },
-    agregarListaCompra() {
-      let producto = this.producto;
-      if (producto) {
-        this.$q.loading.show();
-        productosDAO.getInstance().getNombre(producto).then((result) => {
-          this.$q.loading.hide();
-          const porcentaje = new Decimal(result.porcentaje_ganancia || 0);
-          const ivaPorc = new Decimal(result.porcentaje_iva || 0);
-          const costo = new Decimal(result.costo || 0);
-
-          // Precio Base (Costo + Ganancia)
-          // precioBaseUsd = costo * (1 + (porcentaje / 100))
-          const precioBaseUsd = costo.mul(new Decimal(1).plus(porcentaje.div(100)));
-
-          let precioFinalUsd = precioBaseUsd;
-          let montoIvaUsd = new Decimal(0);
-
-          // Si 'Cobrar IVA' está activo y el producto tiene IVA definido
-          if (this.tributos.cobrar_iva && ivaPorc.gt(0)) {
-            montoIvaUsd = precioBaseUsd.mul(ivaPorc.div(100));
-            precioFinalUsd = precioBaseUsd.plus(montoIvaUsd);
-          }
-
-          const tasa = new Decimal(this.m_valor_dolar || 0);
-          const cantidad = new Decimal(this.cantidad);
-
-          // VALIDATION: Check Stock
-          const cantidadEnCarrito = this.lista_compras
-            .filter(item => item.id === result.id)
-            .reduce((acc, item) => acc + item.cantidad, 0);
-
-          if ((cantidad.plus(cantidadEnCarrito)).gt(result.cantidad)) {
-            this.$q.loading.hide();
-            this.$q.notify({
-              type: 'negative',
-              message: `Stock insuficiente. Disponible: ${result.cantidad}. (En carrito: ${cantidadEnCarrito})`
-            });
-            return;
-          }
-
-          const costoTotalBs = costo.mul(tasa).mul(cantidad); // Costo unit USD * Tasa * Cantidad
-
-          const valor_unitario_bs = precioFinalUsd.mul(tasa);
-          const monto_total_bs = valor_unitario_bs.mul(cantidad);
-
-          // Fiscal breakdowns per item (total line)
-          const base_linea_bs = precioBaseUsd.mul(tasa).mul(cantidad);
-          const iva_linea_bs = montoIvaUsd.mul(tasa).mul(cantidad);
-
-          // Verificar si el producto ya existe en el carrito
-          const itemExistente = this.lista_compras.find(item => item.id === result.id);
-
-          if (itemExistente) {
-            // Sumar cantidad y recalcular montos del ítem existente
-            const nuevaCantidad = new Decimal(itemExistente.cantidad).plus(cantidad);
-            const nuevoCostoTotal = costo.mul(tasa).mul(nuevaCantidad);
-            const nuevoMontoTotal = valor_unitario_bs.mul(nuevaCantidad);
-            const nuevaBaseLinea = precioBaseUsd.mul(tasa).mul(nuevaCantidad);
-            const nuevaIvaLinea = montoIvaUsd.mul(tasa).mul(nuevaCantidad);
-
-            itemExistente.cantidad = nuevaCantidad.toNumber();
-            itemExistente.valor_bs = nuevoMontoTotal.toDecimalPlaces(2).toNumber();
-            itemExistente.costo_total_bs = nuevoCostoTotal.toDecimalPlaces(6).toNumber();
-            itemExistente.monto_base_bs = nuevaBaseLinea.toDecimalPlaces(2).toNumber();
-            itemExistente.monto_iva_bs = nuevaIvaLinea.toDecimalPlaces(2).toNumber();
-          } else {
-            this.lista_compras.push({
-              id: result.id,
-              producto: result.nombre,
-              valor_bs: monto_total_bs.toDecimalPlaces(2).toNumber(), // Precio Final Venta en Bs
-              valor_unitario_bs: valor_unitario_bs.toDecimalPlaces(2).toNumber(),
-              costo_total_bs: costoTotalBs.toDecimalPlaces(6).toNumber(),
-              costo_unitario_bs: costo.mul(tasa).toDecimalPlaces(6).toNumber(),
-              cantidad: cantidad.toNumber(),
-              valor_dolar: tasa.toNumber(),
-              existencia: result.cantidad,
-
-              // Fiscal Data
-              es_exento: !this.tributos.cobrar_iva || ivaPorc.eq(0),
-              tasa_iva: this.tributos.cobrar_iva ? ivaPorc.toNumber() : 0,
-              monto_base_bs: base_linea_bs.toDecimalPlaces(2).toNumber(),
-              monto_iva_bs: iva_linea_bs.toDecimalPlaces(2).toNumber()
-            });
-          }
-
-          this.total = this.lista_compras.reduce((acc, el) => new Decimal(acc).plus(el.valor_bs).toNumber(), 0);
-          this.totalConIGTF = this.total; // Reset logic handles updates
-
-          this.producto = null;
-          this.cantidad = 1;
-          // Limpiar también el texto interno del input del q-select
-          this.$nextTick(() => {
-            if (this.$refs.productoSelect) {
-              this.$refs.productoSelect.updateInputValue('');
-            }
-          });
-
-          this.checkRecommendation(result.id);
-        });
-      } else {
-        this.$q.notify({
-          position: 'top',
-          type: 'negative',
-          message: `Debe agregar un producto a la lista`
-        });
+      } catch (e) {
+        console.error('Error obteniendo productos:', e);
       }
     },
+
+    // Calcula cuántos productos caben en el área visible de la pantalla del teléfono
+    calcBatchSize() {
+      if (typeof window === 'undefined') return 10;
+      // Descontar cabecera, buscador y tabs (~230px de alto)
+      const usableHeight = window.innerHeight - 230;
+      const cardsInView = Math.ceil(usableHeight / 68);
+      // Mínimo 8, máximo 15 tarjetas para cubrir exactamente la pantalla visible
+      return Math.max(8, Math.min(15, cardsInView + 2));
+    },
+
+    // Carga progresiva de productos conforme el usuario desliza la pantalla
+    onLoadMore(index, done) {
+      if (this.displayLimit >= this.productosFiltrados.length) {
+        done(true);
+        return;
+      }
+      setTimeout(() => {
+        this.displayLimit += this.batchSize;
+        done();
+      }, 50);
+    },
+
+    // Retorna la cantidad agregada al carrito para un producto (O(1) lookup optimizado)
+    getProductCartQty(productId) {
+      return this.cartQtyMap[productId] || 0;
+    },
+
+    // Agrega 1 unidad de forma instantánea desde la lista del catálogo (Screenshot 3)
+    agregarProductoDirecto(prod) {
+      this.agregarProductoALista(prod, 1);
+    },
+
+    // Escáner de cámara: recibe el código decodificado
+    async escanearEnCaja(codigo) {
+      await this.procesarCodigoBarras(codigo);
+    },
+
+    // Procesa un código de barras leído por escáner de cámara, lector físico o catálogo
+    async procesarCodigoBarras(codigo) {
+      if (!codigo) return;
+      try {
+        const result = await productosDAO.getByBarcode(codigo.trim());
+        if (result) {
+          this.agregarProductoALista(result, 1);
+
+          // Mostrar banner verde estilo píldora debajo de la cámara (Screenshot 2)
+          this.scanBanner.text = `Agregado: ${result.nombre}`;
+          this.scanBanner.show = true;
+          clearTimeout(this.scanBanner.timer);
+          this.scanBanner.timer = setTimeout(() => {
+            this.scanBanner.show = false;
+          }, 3200);
+        } else {
+          this.$q.notify({
+            type: 'warning',
+            message: `Código no encontrado: ${codigo}`,
+            caption: 'Verifica que el producto tenga asignado este código de barras',
+            icon: 'qr_code_scanner',
+            position: 'top',
+            timeout: 3500
+          });
+        }
+      } catch (e) {
+        console.error('Error procesando código de barras:', e);
+        this.$q.notify({ type: 'negative', message: 'Error al buscar el código escaneado' });
+      }
+    },
+
+    // Cálculo centralizado de precios y adición al carrito
+    agregarProductoALista(result, cant = 1) {
+      const cantidad = new Decimal(cant);
+      const porcentaje = new Decimal(result.porcentaje_ganancia || 0);
+      const ivaPorc = new Decimal(result.porcentaje_iva || 0);
+      const costo = new Decimal(result.costo || 0);
+
+      // Precio Base en USD
+      const precioBaseUsd = costo.mul(new Decimal(1).plus(porcentaje.div(100)));
+
+      let precioFinalUsd = precioBaseUsd;
+      let montoIvaUsd = new Decimal(0);
+
+      if (this.tributos.cobrar_iva && ivaPorc.gt(0)) {
+        montoIvaUsd = precioBaseUsd.mul(ivaPorc.div(100));
+        precioFinalUsd = precioBaseUsd.plus(montoIvaUsd);
+      }
+
+      const tasa = new Decimal(this.$valor_dolar || 1);
+
+      // Validar Stock
+      const cantidadEnCarrito = this.lista_compras
+        .filter(item => item.id === result.id)
+        .reduce((acc, item) => acc + item.cantidad, 0);
+
+      if ((cantidad.plus(cantidadEnCarrito)).gt(result.cantidad)) {
+        this.$q.notify({
+          type: 'negative',
+          message: `Stock insuficiente para ${result.nombre}. Disponible: ${result.cantidad}. (En carrito: ${cantidadEnCarrito})`
+        });
+        return;
+      }
+
+      const costoTotalBs = costo.mul(tasa).mul(cantidad);
+      const valor_unitario_bs = precioFinalUsd.mul(tasa);
+      const monto_total_bs = valor_unitario_bs.mul(cantidad);
+      const base_linea_bs = precioBaseUsd.mul(tasa).mul(cantidad);
+      const iva_linea_bs = montoIvaUsd.mul(tasa).mul(cantidad);
+
+      const itemExistente = this.lista_compras.find(item => item.id === result.id);
+
+      if (itemExistente) {
+        const nuevaCantidad = new Decimal(itemExistente.cantidad).plus(cantidad);
+        const nuevoCostoTotal = costo.mul(tasa).mul(nuevaCantidad);
+        const nuevoMontoTotal = valor_unitario_bs.mul(nuevaCantidad);
+        const nuevaBaseLinea = precioBaseUsd.mul(tasa).mul(nuevaCantidad);
+        const nuevaIvaLinea = montoIvaUsd.mul(tasa).mul(nuevaCantidad);
+
+        itemExistente.cantidad = nuevaCantidad.toNumber();
+        itemExistente.valor_bs = nuevoMontoTotal.toDecimalPlaces(2).toNumber();
+        itemExistente.costo_total_bs = nuevoCostoTotal.toDecimalPlaces(6).toNumber();
+        itemExistente.monto_base_bs = nuevaBaseLinea.toDecimalPlaces(2).toNumber();
+        itemExistente.monto_iva_bs = nuevaIvaLinea.toDecimalPlaces(2).toNumber();
+      } else {
+        this.lista_compras.push({
+          id: result.id,
+          producto: result.nombre,
+          valor_bs: monto_total_bs.toDecimalPlaces(2).toNumber(),
+          valor_unitario_bs: valor_unitario_bs.toDecimalPlaces(2).toNumber(),
+          costo_total_bs: costoTotalBs.toDecimalPlaces(6).toNumber(),
+          costo_unitario_bs: costo.mul(tasa).toDecimalPlaces(6).toNumber(),
+          cantidad: cantidad.toNumber(),
+          valor_dolar: tasa.toNumber(),
+          existencia: result.cantidad,
+          es_exento: !this.tributos.cobrar_iva || ivaPorc.eq(0),
+          tasa_iva: this.tributos.cobrar_iva ? ivaPorc.toNumber() : 0,
+          monto_base_bs: base_linea_bs.toDecimalPlaces(2).toNumber(),
+          monto_iva_bs: iva_linea_bs.toDecimalPlaces(2).toNumber()
+        });
+      }
+
+      this.recalcularTotal();
+      this.checkRecommendation(result.id);
+    },
+
+    calcularPrecioBs(prod) {
+      if (!prod) return 0;
+      const porcentaje = new Decimal(prod.porcentaje_ganancia || 0);
+      const ivaPorc = new Decimal(prod.porcentaje_iva || 0);
+      const costo = new Decimal(prod.costo || 0);
+      const precioBaseUsd = costo.mul(new Decimal(1).plus(porcentaje.div(100)));
+      let precioFinalUsd = precioBaseUsd;
+      if (this.tributos.cobrar_iva && ivaPorc.gt(0)) {
+        precioFinalUsd = precioBaseUsd.plus(precioBaseUsd.mul(ivaPorc.div(100)));
+      }
+      const tasa = new Decimal(this.$valor_dolar || 1);
+      return precioFinalUsd.mul(tasa).toDecimalPlaces(2).toNumber();
+    },
+
+    calcularPrecioUSD(prod) {
+      if (!prod) return 0;
+      const porcentaje = new Decimal(prod.porcentaje_ganancia || 0);
+      const ivaPorc = new Decimal(prod.porcentaje_iva || 0);
+      const costo = new Decimal(prod.costo || 0);
+      const precioBaseUsd = costo.mul(new Decimal(1).plus(porcentaje.div(100)));
+      let precioFinalUsd = precioBaseUsd;
+      if (this.tributos.cobrar_iva && ivaPorc.gt(0)) {
+        precioFinalUsd = precioBaseUsd.plus(precioBaseUsd.mul(ivaPorc.div(100)));
+      }
+      return precioFinalUsd.toDecimalPlaces(2).toNumber();
+    },
+
+    actualizarCantidadItem(index, nuevaCantidad) {
+      const item = this.lista_compras[index];
+      if (!item) return;
+
+      if (nuevaCantidad <= 0) {
+        this.lista_compras.splice(index, 1);
+        this.recalcularTotal();
+        return;
+      }
+
+      if (nuevaCantidad > item.existencia) {
+        this.$q.notify({
+          type: 'negative',
+          message: `Stock insuficiente. Disponible: ${item.existencia}`
+        });
+        nuevaCantidad = item.existencia;
+      }
+
+      const precioUnit = new Decimal(item.valor_unitario_bs);
+      const costoUnit = new Decimal(item.costo_unitario_bs);
+      const cantDec = new Decimal(nuevaCantidad);
+
+      item.cantidad = nuevaCantidad;
+      item.valor_bs = precioUnit.mul(cantDec).toDecimalPlaces(2).toNumber();
+      item.costo_total_bs = costoUnit.mul(cantDec).toDecimalPlaces(6).toNumber();
+
+      if (!item.es_exento) {
+        const baseUnit = precioUnit.div(new Decimal(1).plus(new Decimal(item.tasa_iva).div(100)));
+        const ivaUnit = precioUnit.minus(baseUnit);
+        item.monto_base_bs = baseUnit.mul(cantDec).toDecimalPlaces(2).toNumber();
+        item.monto_iva_bs = ivaUnit.mul(cantDec).toDecimalPlaces(2).toNumber();
+      } else {
+        item.monto_base_bs = item.valor_bs;
+        item.monto_iva_bs = 0;
+      }
+
+      this.recalcularTotal();
+    },
+
+    handleQtyChange({ index, delta }) {
+      const item = this.lista_compras[index];
+      if (!item) return;
+      this.actualizarCantidadItem(index, item.cantidad + delta);
+    },
+
+    disminuirProducto(prod) {
+      const index = this.lista_compras.findIndex(i => i.id === prod.id);
+      if (index > -1) {
+        this.actualizarCantidadItem(index, this.lista_compras[index].cantidad - 1);
+      }
+    },
+
+    aumentarProducto(prod) {
+      const index = this.lista_compras.findIndex(i => i.id === prod.id);
+      if (index > -1) {
+        this.actualizarCantidadItem(index, this.lista_compras[index].cantidad + 1);
+      } else {
+        this.agregarProductoALista(prod, 1);
+      }
+    },
+
+    onQtyInputChange(prod, val, event) {
+      const parsed = parseFloat(val);
+      const index = this.lista_compras.findIndex(i => i.id === prod.id);
+
+      if (isNaN(parsed) || parsed <= 0) {
+        if (index > -1) {
+          this.eliminarProductoLista(index);
+        }
+        if (event && event.target) {
+          event.target.value = 0;
+        }
+        return;
+      }
+
+      if (index > -1) {
+        this.actualizarCantidadItem(index, parsed);
+        if (event && event.target) {
+          event.target.value = this.getProductCartQty(prod.id);
+        }
+      } else {
+        this.agregarProductoALista(prod, parsed);
+        if (event && event.target) {
+          event.target.value = this.getProductCartQty(prod.id);
+        }
+      }
+    },
+
+    eliminarProductoLista(index) {
+      this.lista_compras.splice(index, 1);
+      this.recalcularTotal();
+    },
+
+    limpiarCarrito() {
+      this.lista_compras = [];
+      this.total = 0;
+      this.totalConIGTF = 0;
+    },
+
+    recalcularTotal() {
+      this.total = this.lista_compras.reduce((acc, el) => new Decimal(acc).plus(el.valor_bs).toNumber(), 0);
+      if (['Efectivo $', 'Zelle'].includes(this.form.metodo_pago) && this.tributos.cobrar_igtf) {
+        this.calcularIGTF();
+      } else {
+        this.totalConIGTF = this.total;
+      }
+    },
+
     calcularIGTF() {
-      // Si pago en Divisas, aplicar 3% sobre el monto equivalente en Bs o sobre el monto $ convertido
-      // Asumimos pago total en divisa
       if (this.tributos.cobrar_igtf) {
         this.montoIGTF = new Decimal(this.total).mul(0.03).toDecimalPlaces(2).toNumber();
         this.totalConIGTF = new Decimal(this.total).plus(this.montoIGTF).toNumber();
       }
     },
-    confirmAndSave() {
-      if (!this.form.metodo_pago) {
-        this.$q.notify({
-          type: 'warning',
-          message: 'Seleccione un método de pago'
-        });
-        return;
-      }
-      if (this.form.metodo_pago === 'Fiado') {
-        this.clienteDialog = true;
-        this.clienteFound = null;
-        this.clienteForm = new Clientes();
-        this.cedulaSearch = '';
-        return;
-      }
-      this.save();
+
+    // Selección de cliente desde FiadoDialog o PaymentDialog
+    onClienteSelect({ cliente_id, cliente_nombre }) {
+      this.form.cliente_id = cliente_id;
+      this.form.cliente_nombre = cliente_nombre;
+      this.$q.notify({
+        type: 'positive',
+        message: `Cliente asignado: ${cliente_nombre}`,
+        position: 'top',
+        timeout: 2000
+      });
     },
-    async buscarCliente() {
-      if (!this.cedulaSearch) return;
-      this.$q.loading.show();
-      try {
-        const cliente = await clientesDAO.getInstance().getByCedula(this.cedulaSearch);
-        if (cliente) {
-          this.clienteFound = cliente;
-          this.clienteForm = { ...cliente };
-        } else {
-          this.clienteFound = false;
-          this.clienteForm = new Clientes();
-          this.clienteForm.cedula = this.cedulaSearch;
-        }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        this.$q.loading.hide();
-      }
-    },
-    async registrarYContinuar() {
-      if (!this.clienteForm.nombre || !this.clienteForm.telefono) {
-        this.$q.notify({ type: 'warning', message: 'Nombre y Teléfono son requeridos' });
-        return;
+
+    // Callback de confirmación desde PaymentDialog (Screenshot 4)
+    onPaymentConfirm({ metodo_pago, observaciones, descuento, totalFinal }) {
+      this.form.metodo_pago = metodo_pago;
+      this.observaciones = observaciones;
+      this.descuentoTotal = descuento || 0;
+      if (totalFinal !== undefined) {
+        this.totalConIGTF = totalFinal;
       }
 
-      this.$q.loading.show();
-      try {
-        let clienteId;
-        if (this.clienteFound && this.clienteFound.id) {
-          clienteId = this.clienteFound.id;
-        } else {
-          this.clienteForm.create_at = this.m_fechaCreacion;
-          clienteId = await clientesDAO.getInstance().save(this.clienteForm);
+      if (metodo_pago === 'Fiado') {
+        if (!this.form.cliente_id) {
+          this.clienteDialog = true;
+          return;
         }
-
-        this.form.cliente_id = clienteId;
-        this.form.cliente_nombre = this.clienteForm.nombre;
         this.form.estado = 'PENDIENTE';
-
-        this.clienteDialog = false;
-        await this.save(true);
-
-      } catch (e) {
-        console.error(e);
-        this.$q.notify({ type: 'negative', message: 'Error registrando cliente' });
-      } finally {
-        this.$q.loading.hide();
+        this.save(true);
+      } else {
+        this.save();
       }
     },
-    async confirmarFiadoExistente() {
-      if (!this.clienteFound) return;
 
-      this.form.cliente_id = this.clienteFound.id;
-      this.form.cliente_nombre = this.clienteFound.nombre;
-      this.form.estado = 'PENDIENTE';
-
-      this.clienteDialog = false;
-      await this.save();
-    },
     async save(isFiadoConfirmed = false) {
       this.$q.loading.show();
-      this.form.create_at = this.m_fechaCreacion;
-      this.form.total = this.totalConIGTF; // Save total PAID (including tax)
+      this.form.create_at = this.$getFechaCreacion();
+      this.form.total = this.totalConIGTF || this.total;
       this.form.productos = this.lista_compras;
-      this.form.metodo_pago = this.form.metodo_pago; // Already set
 
-      // Fiscal Summaries
       let monto_exento = new Decimal(0);
       let monto_base = new Decimal(0);
       let monto_iva = new Decimal(0);
@@ -566,52 +791,51 @@ export default {
       this.form.monto_exento = monto_exento.toDecimalPlaces(2).toNumber();
       this.form.monto_base = monto_base.toDecimalPlaces(2).toNumber();
       this.form.monto_iva = monto_iva.toDecimalPlaces(2).toNumber();
-      this.form.tasa_iva = 16; // Standard calc reference
-
+      this.form.tasa_iva = 16;
       this.form.monto_igtf = this.montoIGTF;
-      this.form.tasa_dolar = this.m_valor_dolar;
-      // If paid in dollars, we estimate amount in USD
+      this.form.tasa_dolar = this.$valor_dolar;
+
       if (['Efectivo $', 'Zelle'].includes(this.form.metodo_pago)) {
-        this.form.monto_dolar = new Decimal(this.total).div(this.m_valor_dolar).toDecimalPlaces(2).toNumber();
+        this.form.monto_dolar = new Decimal(this.total).div(this.$valor_dolar).toDecimalPlaces(2).toNumber();
       } else {
         this.form.monto_dolar = 0;
       }
 
       this.form.observaciones = this.observaciones;
 
-
       try {
-        let currentSeq = await configuracionDAO.getInstance().get('secuencia_factura');
-        if (!currentSeq) currentSeq = 1;
-        else currentSeq = Number(currentSeq) + 1;
+        let currentSeq = 1;
+        let ventaId = null;
 
-        this.form.numero_factura = currentSeq;
+        await db.transaction('rw', [db.ventas, db.movimientos, db.productos, db.configuracion], async () => {
+          const seqObj = await db.configuracion.get('secuencia_factura');
+          currentSeq = seqObj ? Number(seqObj.value) + 1 : 1;
+          this.form.numero_factura = currentSeq;
 
-        const ventaId = await ventasDAO.getInstance().save(this.form);
+          ventaId = await db.ventas.add(this.form);
+          await db.configuracion.put({ key: 'secuencia_factura', value: currentSeq });
 
-        // Guardar para el ticket antes de limpiar
+          for (const element of this.lista_compras) {
+            const movimiento = new Movimientos();
+            movimiento.producto_id = element.id;
+            movimiento.tipo = 'SALIDA';
+            movimiento.cantidad = element.cantidad;
+            movimiento.fecha = Date.now();
+            movimiento.referencia = `Venta #${ventaId} (Fac: ${currentSeq})`;
+            movimiento.create_at = this.$getFechaCreacion();
+
+            await db.movimientos.add(movimiento);
+
+            const producto = await db.productos.get(element.id);
+            if (producto) {
+              let resta_producto = producto.cantidad - element.cantidad;
+              await db.productos.update(element.id, { cantidad: resta_producto });
+            }
+          }
+        });
+
         this.ultimaVenta = JSON.parse(JSON.stringify(this.form));
         this.ultimaVenta.id = ventaId;
-
-        await configuracionDAO.getInstance().save('secuencia_factura', currentSeq);
-
-        for (const element of this.lista_compras) {
-          const movimiento = new Movimientos();
-          movimiento.producto_id = element.id;
-          movimiento.tipo = 'SALIDA';
-          movimiento.cantidad = element.cantidad;
-          movimiento.fecha = Date.now();
-          movimiento.referencia = `Venta #${ventaId} (Fac: ${currentSeq})`;
-          movimiento.create_at = this.m_fechaCreacion;
-
-          await movimientosDAO.getInstance().save(movimiento);
-
-          const producto = await db.productos.get(element.id);
-          if (producto) {
-            let resta_producto = producto.cantidad - element.cantidad;
-            await db.productos.update(element.id, { cantidad: resta_producto });
-          }
-        }
 
         this.form = new Ventas();
         this.form.cliente_id = null;
@@ -619,7 +843,6 @@ export default {
         this.form.estado = 'PAGADO';
         this.montoIGTF = 0;
         this.totalConIGTF = 0;
-
         this.lista_compras = [];
         this.total = 0;
         this.observaciones = '';
@@ -630,13 +853,13 @@ export default {
         this.$q.notify({
           position: 'top',
           type: 'positive',
-          message: `Venta registrada con éxito. Factura #${currentSeq}`
+          message: `Venta #${currentSeq} registrada exitosamente`,
+          icon: 'check_circle'
         });
 
         this.m_ticket_dialog = true;
-
       } catch (e) {
-        console.error(`Error: ${e.stack || e}`);
+        console.error(`Error guardando venta: ${e.stack || e}`);
         this.$q.loading.hide();
         this.$q.notify({
           position: 'top',
@@ -645,88 +868,11 @@ export default {
         });
       }
     },
-    eliminarProductoLista(index) {
-      this.lista_compras.splice(index, 1);
-      this.recalcularTotal();
+
+    imprimirTicket() {
+      window.print();
     },
-    cambiarCantidadItem(index, delta) {
-      const item = this.lista_compras[index];
-      if (!item) return;
 
-      const nuevaCantidad = item.cantidad + delta;
-
-      // Si llega a 0, eliminar el ítem completo
-      if (nuevaCantidad <= 0) {
-        this.lista_compras.splice(index, 1);
-        this.recalcularTotal();
-        return;
-      }
-
-      // Validar stock al aumentar
-      if (delta > 0 && nuevaCantidad > item.existencia) {
-        this.$q.notify({
-          type: 'negative',
-          message: `Stock insuficiente. Disponible: ${item.existencia}`
-        });
-        return;
-      }
-
-      // Recalcular montos proporcionales usando precio unitario
-      const precioUnit = new Decimal(item.valor_unitario_bs);
-      const costoUnit = new Decimal(item.costo_unitario_bs);
-      const cantDec = new Decimal(nuevaCantidad);
-
-      item.cantidad = nuevaCantidad;
-      item.valor_bs = precioUnit.mul(cantDec).toDecimalPlaces(2).toNumber();
-      item.costo_total_bs = costoUnit.mul(cantDec).toDecimalPlaces(6).toNumber();
-
-      // Recalcular fiscal proporcional (base e IVA por unidad = monto_base_bs / cantidad_anterior)
-      if (!item.es_exento) {
-        const baseUnit = precioUnit.div(new Decimal(1).plus(new Decimal(item.tasa_iva).div(100)));
-        const ivaUnit = precioUnit.minus(baseUnit);
-        item.monto_base_bs = baseUnit.mul(cantDec).toDecimalPlaces(2).toNumber();
-        item.monto_iva_bs = ivaUnit.mul(cantDec).toDecimalPlaces(2).toNumber();
-      } else {
-        item.monto_base_bs = item.valor_bs;
-        item.monto_iva_bs = 0;
-      }
-
-      this.recalcularTotal();
-    },
-    recalcularTotal() {
-      this.total = this.lista_compras.reduce((acc, el) => new Decimal(acc).plus(el.valor_bs).toNumber(), 0);
-      if (['Efectivo $', 'Zelle'].includes(this.form.metodo_pago) && this.tributos.cobrar_igtf) {
-        this.calcularIGTF();
-      } else {
-        this.totalConIGTF = this.total;
-      }
-    },
-    filterFn(val, update, abort) {
-      update(() => {
-        const needle = val.toLowerCase();
-        let filtered = this.stringOptions;
-        
-        // Apply Category Filter
-        if (this.filtroCategoria !== null) {
-          filtered = filtered.filter(p => p.categoria_id === this.filtroCategoria);
-        }
-
-        // Buscar por nombre
-        const byName = filtered.filter(v => v.nombre.toLowerCase().indexOf(needle) > -1);
-
-        // Buscar por código de barras (mapear nombres a objetos)
-        const byBarcode = Object.entries(this.barcodeMap)
-          .filter(([code]) => code.toLowerCase().indexOf(needle) > -1)
-          .map(([, nombre]) => this.stringOptions.find(p => p.nombre === nombre))
-          .filter(p => p); // Eliminar posibles undefined
-          
-        this.options = [...byName, ...byBarcode];
-      })
-    },
-    calcularPrecioUSD(valorBs, valorDolar) {
-      if (!valorBs || !valorDolar) return 0;
-      return parseFloat((valorBs / valorDolar).toFixed(2));
-    },
     async checkRecommendation(productId) {
       if (!this.sugerencias_activas) return;
       try {
@@ -736,102 +882,44 @@ export default {
           this.recommendedProduct = recommendation;
           this.$q.notify({
             message: `💡 Sugerencia: Clientes también llevan ${recommendation.nombre}`,
-            caption: 'Producto con poco movimiento disponible',
-            color: 'indigo-10',
+            color: 'primary',
             icon: 'lightbulb',
             position: 'bottom-right',
-            timeout: 10000,
+            timeout: 6000,
             actions: [
-              { label: 'Omitir', color: 'white', handler: () => { } },
-              { label: 'Agregar', color: 'yellow', handler: () => { this.confirmRecommendation() } }
+              { label: 'Omitir', color: 'white' },
+              {
+                label: 'Agregar',
+                color: 'amber',
+                handler: () => {
+                  this.agregarProductoALista(this.recommendedProduct, 1);
+                }
+              }
             ]
           });
         }
       } catch (e) {
-        console.error("Error checking recommendation:", e);
-      }
-    },
-    confirmRecommendation() {
-      if (this.recommendedProduct) {
-        this.producto = this.recommendedProduct.nombre;
-        this.agregarListaCompra();
-        this.recommendedProduct = null;
-      }
-    },
-    imprimirTicket() {
-      window.print();
-    },
-
-    // Busca un producto por código de barras (escáner de cámara) y lo agrega al carrito
-    async escanearEnCaja(codigo) {
-      await this.procesarCodigoBarras(codigo);
-    },
-
-
-    // Se dispara cuando el usuario escribe algo que no coincide con ninguna opción
-    // (caso típico del escáner externo que llena el campo y luego manda Enter)
-    async onNewValue(val, done) {
-      // Cerrar el menú del q-select sin seleccionar nada
-      done(null);
-      const codigo = (val || '').trim();
-      if (!codigo) return;
-      await this.procesarCodigoBarras(codigo);
-    },
-
-    // Procesa un código de barras leído (desde q-select, cámara o listener global)
-    async procesarCodigoBarras(codigo) {
-      if (!codigo) return;
-      try {
-        const result = await productosDAO.getInstance().getByBarcode(codigo);
-        if (result) {
-          this.producto = result.nombre;
-          this.$q.notify({
-            type: 'positive',
-            message: `✅ ${result.nombre} agregado al carrito`,
-            icon: 'qr_code_scanner',
-            position: 'top-right',
-            timeout: 2500
-          });
-          await this.agregarListaCompra();
-        } else {
-          this.$q.notify({
-            type: 'warning',
-            message: `Código no encontrado: ${codigo}`,
-            caption: 'Verifica que el producto tenga asignado este código de barras',
-            icon: 'qr_code_scanner',
-            position: 'top',
-            timeout: 5000
-          });
-        }
-      } catch (e) {
-        console.error('Error procesando código de barras:', e);
-        this.$q.notify({ type: 'negative', message: 'Error al buscar el código escaneado' });
+        console.error('Error recomendación:', e);
       }
     },
 
-    // Listener global de teclado para detectar entrada rápida del lector externo
+    // Listener global de teclado para lectores de código de barras USB/Bluetooth físicos
     initBarcodeListener() {
-      // Los lectores de código de barras emiten todos los caracteres en ráfagas muy rápidas (<50ms entre chars)
-      // y terminan con Enter (keyCode 13). Detectamos ese patrón.
-      const BARCODE_MIN_LENGTH = 4;   // mínimo de caracteres para considerar un código
-      const BARCODE_MAX_DELAY = 80;   // ms máximo entre caracteres del lector
+      const BARCODE_MIN_LENGTH = 4;
+      const BARCODE_MAX_DELAY = 80;
 
       this._barcodeBuffer = '';
       this._barcodeTimer = null;
 
       this._barcodeKeyHandler = (e) => {
-        // Ignorar si hay un diálogo de pago abierto
         if (this.confirmPaymentDialog || this.clienteDialog) return;
-
-        // Ignorar modificadores de teclado (Ctrl, Alt, ...)
         if (e.ctrlKey || e.altKey || e.metaKey) return;
 
-        // Si el q-select de producto tiene el foco, dejar que @new-value lo maneje
-        const selectEl = this.$refs.productoSelect && this.$refs.productoSelect.$el;
-        if (selectEl && selectEl.contains(document.activeElement)) return;
+        // Si el usuario está escribiendo activamente en el input de búsqueda del catálogo
+        const active = document.activeElement;
+        if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
 
         if (e.key === 'Enter') {
-          // Enter recibido: procesar el buffer si tiene contenido válido
           if (this._barcodeBuffer.length >= BARCODE_MIN_LENGTH) {
             const codigo = this._barcodeBuffer;
             this._barcodeBuffer = '';
@@ -843,12 +931,8 @@ export default {
           return;
         }
 
-        // Solo acumular caracteres imprimibles de un solo carácter
         if (e.key.length === 1) {
           this._barcodeBuffer += e.key;
-
-          // Reiniciar timer: si pasan más de BARCODE_MAX_DELAY ms sin Enter,
-          // asumir entrada manual → no procesar automáticamente
           clearTimeout(this._barcodeTimer);
           this._barcodeTimer = setTimeout(() => {
             this._barcodeBuffer = '';
@@ -867,11 +951,241 @@ export default {
       clearTimeout(this._barcodeTimer);
     }
   }
-}
+};
 </script>
 
 <style scoped>
-.rounded-card {
-  border-radius: 16px;
+.pos-container {
+  max-width: 680px;
+}
+
+.bg-slate-50 {
+  background-color: #F8FAFC;
+}
+
+/* Status Pill en la barra superior (Screenshot 1: Plan Pro) */
+.status-pill {
+  background-color: #E8F5F1;
+  border-radius: 9999px;
+  border: 1px solid rgba(13, 104, 79, 0.15);
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #0D684F;
+}
+
+/* Switcher de Píldoras Superior (Screenshots 1, 2 y 3) */
+.segmented-pill-container {
+  border-radius: 9999px;
+  padding: 4px;
+  gap: 4px;
+}
+
+.pill-tab-btn {
+  border: none;
+  background: transparent;
+  padding: 8px 24px;
+  border-radius: 9999px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #64748B;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pill-tab-active {
+  background-color: #0D684F !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 2px 8px rgba(13, 104, 79, 0.25);
+}
+
+/* Banner Notificación Toast Inmediata (Screenshot 2: 'Agregado: ...') */
+.scan-success-banner {
+  background-color: #0D684F;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(13, 104, 79, 0.25);
+}
+
+.slide-toast-enter-active,
+.slide-toast-leave-active {
+  transition: all 0.25s ease-out;
+}
+
+.slide-toast-enter,
+.slide-toast-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+/* Buscador en Catálogo (Screenshot 3) */
+.search-pill-input :deep(.q-field__control) {
+  border-radius: 9999px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+/* Categorías con scroll horizontal */
+.category-scroll-row {
+  overflow-x: auto;
+}
+
+.chip-pastel-blue {
+  background-color: #E0F2FE;
+  color: #0369A1;
+  border-color: #BAE6FD;
+}
+
+.chip-pastel-purple {
+  background-color: #E8F5F1;
+  color: #0D684F;
+  border-color: #A7F3D0;
+}
+
+.chip-pastel-teal {
+  background-color: #CCFBF1;
+  color: #0F766E;
+  border-color: #99F6E4;
+}
+
+.chip-pastel-amber {
+  background-color: #FEF3C7;
+  color: #B45309;
+  border-color: #FDE68A;
+}
+
+/* Tarjetas de Producto en Catálogo (Screenshot 3) */
+.product-catalog-card {
+  border-radius: 14px;
+  padding: 8px 12px;
+}
+
+.catalog-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background-color: #E8F5F1;
+  flex-shrink: 0;
+}
+
+/* Badge Circular Verde de Cantidad (Screenshot 3) */
+.catalog-qty-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  transition: all 0.15s ease;
+}
+
+.badge-in-cart {
+  background-color: #0D684F;
+  color: #FFFFFF;
+  box-shadow: 0 2px 6px rgba(13, 104, 79, 0.3);
+}
+
+.badge-empty {
+  background-color: #E8F5F1;
+  color: #0D684F;
+}
+
+.badge-empty:hover {
+  background-color: #0D684F;
+  color: #FFFFFF;
+}
+
+/* Stepper en Tarjeta de Catálogo: [ - ] [ Casilla ] [ + ] */
+.catalog-stepper-control {
+  border-radius: 9999px;
+  padding: 2px 4px;
+  gap: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.catalog-stepper-btn {
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.catalog-stepper-btn:hover {
+  background-color: rgba(13, 104, 79, 0.12);
+}
+
+.catalog-stepper-btn:active {
+  transform: scale(0.9);
+}
+
+.catalog-stepper-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.catalog-qty-input {
+  width: 42px;
+  height: 26px;
+  border-radius: 6px;
+  font-size: 13px;
+  padding: 0 2px;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.catalog-qty-input-light {
+  background-color: #FFFFFF;
+  color: #0F172A;
+  border: 1px solid #CBD5E1;
+}
+
+.catalog-qty-input-dark {
+  background-color: #1E293B;
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.catalog-qty-input:focus {
+  border-color: #0D684F !important;
+  box-shadow: 0 0 0 2px rgba(13, 104, 79, 0.2) !important;
+}
+
+/* Ocultar flechas numéricas nativas en todos los navegadores */
+.catalog-qty-input::-webkit-outer-spin-button,
+.catalog-qty-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.catalog-qty-input[type=number] {
+  -moz-appearance: textfield;
+}
+
+/* Barra Flotante Inferior Sticky (Screenshot 2) */
+.sticky-bottom-bar {
+  border-top: 1px solid #E2E8F0;
+  max-width: 680px;
+  margin: 0 auto;
+  border-radius: 18px 18px 0 0;
+}
+
+.fade-in-section {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

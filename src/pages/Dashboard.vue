@@ -3,57 +3,57 @@
     <div class="row items-center q-mb-md">
       <div class="text-h5 text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-primary'">Dashboard</div>
       <q-space />
-      <div class="text-caption text-grey">Hoy: {{ m_hoyFecha }}</div>
+      <div class="text-caption text-grey">Hoy: {{ $getHoyFecha() }}</div>
     </div>
 
     <!-- KPI Cards -->
-    <div class="row q-col-gutter-md q-mb-md">
-      <div class="col-12 col-sm-6 col-md-3">
-        <q-card class="rounded-card shadow-1 bg-primary text-white">
-          <q-card-section>
-            <div class="text-subtitle2 opacity-70">Ventas Hoy</div>
-            <div class="text-h5 text-weight-bold text-white">Bs {{ m_formatMoney(kpis.ventasHoy) }}</div>
-            <div class="text-caption" v-if="m_valor_dolar">
-              $ {{ m_formatMoneyUSD(kpis.ventasHoy / m_valor_dolar) }}
+    <div class="row q-col-gutter-sm q-mb-md">
+      <div class="col-6 col-md-3">
+        <q-card class="rounded-card shadow-1 bg-primary text-white kpi-card">
+          <q-card-section class="q-pa-sm">
+            <div class="text-caption opacity-70">Ventas Hoy</div>
+            <div class="text-h6 text-weight-bold text-white kpi-value">Bs {{ $formatMoney(kpis.ventasHoy) }}</div>
+            <div class="text-caption" v-if="$valor_dolar">
+              $ {{ $formatMoneyUSD(kpis.ventasHoy / $valor_dolar) }}
             </div>
           </q-card-section>
-          <q-icon name="payments" class="absolute-bottom-right q-ma-sm opacity-20" size="48px" />
+          <q-icon name="payments" class="absolute-bottom-right q-ma-sm opacity-20" size="36px" />
         </q-card>
       </div>
 
-      <div class="col-12 col-sm-6 col-md-3">
-        <q-card class="rounded-card shadow-1 bg-positive text-white">
-          <q-card-section>
-            <div class="text-subtitle2 opacity-70">Ganancia Est. Hoy</div>
-            <div class="text-h5 text-weight-bold text-white">Bs {{ m_formatMoney(kpis.gananciaHoy) }}</div>
-            <div class="text-caption" v-if="m_valor_dolar">
-              $ {{ m_formatMoneyUSD(kpis.gananciaHoy / m_valor_dolar) }}
+      <div class="col-6 col-md-3">
+        <q-card class="rounded-card shadow-1 bg-positive text-white kpi-card">
+          <q-card-section class="q-pa-sm">
+            <div class="text-caption opacity-70">Ganancia Est.</div>
+            <div class="text-h6 text-weight-bold text-white kpi-value">Bs {{ $formatMoney(kpis.gananciaHoy) }}</div>
+            <div class="text-caption" v-if="$valor_dolar">
+              $ {{ $formatMoneyUSD(kpis.gananciaHoy / $valor_dolar) }}
             </div>
           </q-card-section>
-          <q-icon name="trending_up" class="absolute-bottom-right q-ma-sm opacity-20" size="48px" />
+          <q-icon name="trending_up" class="absolute-bottom-right q-ma-sm opacity-20" size="36px" />
         </q-card>
       </div>
 
-      <div class="col-12 col-sm-6 col-md-3">
-        <q-card class="rounded-card shadow-1 bg-orange text-white">
-          <q-card-section>
-            <div class="text-subtitle2 opacity-70">Transacciones</div>
-            <div class="text-h5 text-weight-bold text-white">{{ kpis.transacciones }}</div>
-            <div class="text-caption">Ticket prom: Bs {{ m_formatMoney(kpis.ventasHoy / (kpis.transacciones || 1)) }}
+      <div class="col-6 col-md-3">
+        <q-card class="rounded-card shadow-1 bg-orange text-white kpi-card">
+          <q-card-section class="q-pa-sm">
+            <div class="text-caption opacity-70">Transacciones</div>
+            <div class="text-h6 text-weight-bold text-white kpi-value">{{ kpis.transacciones }}</div>
+            <div class="text-caption">Ticket prom: Bs {{ $formatMoney(kpis.ventasHoy / (kpis.transacciones || 1)) }}
             </div>
           </q-card-section>
-          <q-icon name="receipt" class="absolute-bottom-right q-ma-sm opacity-20" size="48px" />
+          <q-icon name="receipt" class="absolute-bottom-right q-ma-sm opacity-20" size="36px" />
         </q-card>
       </div>
 
-      <div class="col-12 col-sm-6 col-md-3">
-        <q-card class="rounded-card shadow-1 bg-negative text-white cursor-pointer" @click="$router.push('/productos')">
-          <q-card-section>
-            <div class="text-subtitle2 opacity-70">Stock Crítico</div>
-            <div class="text-h5 text-weight-bold text-white">{{ kpis.stockBajo }}</div>
-            <div class="text-caption">Productos por agotarse</div>
+      <div class="col-6 col-md-3">
+        <q-card class="rounded-card shadow-1 bg-negative text-white cursor-pointer kpi-card" @click="$router.push('/productos')">
+          <q-card-section class="q-pa-sm">
+            <div class="text-caption opacity-70">Stock Crítico</div>
+            <div class="text-h6 text-weight-bold text-white kpi-value">{{ kpis.stockBajo }}</div>
+            <div class="text-caption">Por agotarse</div>
           </q-card-section>
-          <q-icon name="warning" class="absolute-bottom-right q-ma-sm opacity-20" size="48px" />
+          <q-icon name="warning" class="absolute-bottom-right q-ma-sm opacity-20" size="36px" />
         </q-card>
       </div>
     </div>
@@ -179,19 +179,19 @@ export default {
       stockColumns: [
         { name: 'nombre', label: 'Producto', field: 'nombre', align: 'left', sortable: true },
         { name: 'cantidad', label: 'Stock', field: 'cantidad', align: 'center', sortable: true },
-        { name: 'costo', label: 'Costo (Bs)', field: 'costo', align: 'right', format: val => this.m_formatMoney(val) }
+        { name: 'costo', label: 'Costo (Bs)', field: 'costo', align: 'right', format: val => this.$formatMoney(val) }
       ],
       chart: null
     };
   },
   async mounted() {
     this.$q.loading.show({ message: 'Cargando Dashboard...' });
-    await this.m_getDolar();
+    await this.$getDolar();
     await this.loadKPIs();
     await this.renderChart();
     this.$q.loading.hide();
   },
-  beforeUnmount() {
+  beforeDestroy() {
     if (this.chart) {
       this.chart.destroy();
     }
@@ -201,7 +201,7 @@ export default {
       const hoy = date.formatDate(new Date(), 'YYYY/MM/DD');
 
       // Ventas de hoy
-      const ventas = await ventasDAO.getInstance().get(hoy, hoy);
+      const ventas = await ventasDAO.get(hoy, hoy);
       this.kpis.transacciones = ventas.length;
 
       let totalVenta = 0;
@@ -222,7 +222,7 @@ export default {
       this.kpis.gananciaHoy = totalGanancia;
 
       // Stock Bajo (menos de 5 unidades)
-      const productos = await productosDAO.getInstance().get();
+      const productos = await productosDAO.get();
       this.productosBajoStock = productos.filter(p => (p.cantidad || 0) < 5).sort((a, b) => a.cantidad - b.cantidad);
       this.kpis.stockBajo = this.productosBajoStock.length;
     },
@@ -235,13 +235,19 @@ export default {
       const salesData = [];
       const labels = [];
 
+      const weekStart = date.subtractFromDate(new Date(), { days: 6 });
+      const weekStartStr = date.formatDate(weekStart, 'YYYY/MM/DD');
+      const todayStr = date.formatDate(new Date(), 'YYYY/MM/DD');
+      
+      const weekSales = await ventasDAO.get(weekStartStr, todayStr);
+
       for (let i = 6; i >= 0; i--) {
         const d = date.subtractFromDate(new Date(), { days: i });
         const dayStr = date.formatDate(d, 'YYYY/MM/DD');
         const label = date.formatDate(d, 'ddd'); // Nombre del día
 
         labels.push(label);
-        const dailyVentas = await ventasDAO.getInstance().get(dayStr, dayStr);
+        const dailyVentas = weekSales.filter(v => v.create_at && v.create_at.startsWith(dayStr));
         const total = dailyVentas.reduce((acc, v) => acc + (v.total || 0), 0);
         salesData.push(total);
       }
@@ -272,7 +278,7 @@ export default {
             y: {
               beginAtZero: true,
               ticks: {
-                callback: (val) => this.m_formatMoney(val)
+                callback: (val) => this.$formatMoney(val)
               }
             }
           }
@@ -296,5 +302,15 @@ export default {
 
 .opacity-20 {
   opacity: 0.2;
+}
+
+.kpi-card {
+  min-height: 90px;
+}
+
+.kpi-value {
+  font-size: clamp(0.9rem, 3vw, 1.5rem);
+  line-height: 1.2;
+  word-break: break-word;
 }
 </style>

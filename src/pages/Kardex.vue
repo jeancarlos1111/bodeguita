@@ -8,7 +8,7 @@
         <div class="row q-col-gutter-md q-mb-xl">
             <div class="col-12">
                 <q-banner rounded class="shadow-1" 
-                    :class="$q.dark.isActive ? 'bg-indigo-9 text-white' : 'bg-indigo-1 text-primary'" 
+                    :class="$q.dark.isActive ? 'bg-grey-9 text-white' : 'bg-green-1 text-primary'" 
                     v-if="estadisticas.productosBajoStock > 0">
                     <template v-slot:avatar>
                         <q-icon name="add_alert" color="primary" />
@@ -172,7 +172,7 @@ export default {
             return date.formatDate(timestamp, 'YYYY-MM-DD HH:mm');
         },
         async loadProductos() {
-            const productos = await productosDAO.getInstance().get();
+            const productos = await productosDAO.get();
             productos.forEach(p => {
                 this.$set(this.productosMap, p.id, p.nombre);
             });
@@ -181,10 +181,10 @@ export default {
             return this.productosMap[id] || 'Producto Desconocido';
         },
         async loadMovimientos() {
-            this.movimientos = await movimientosDAO.getInstance().getAll();
+            this.movimientos = await movimientosDAO.getAll();
         },
         async loadAnalisis() {
-            this.estadisticas = await KardexService.getInstance().getEstadisticasGenerales();
+            this.estadisticas = await KardexService.getEstadisticasGenerales();
         },
         getColorTipo(tipo) {
             if (tipo === 'ENTRADA') return 'positive';
@@ -208,7 +208,7 @@ export default {
                 const addStock = new Decimal(this.stockForm.cantidad);
                 const nuevoStock = currentStock.plus(addStock).toNumber();
 
-                await productosDAO.getInstance().update(this.selectedProduct.id, {
+                await productosDAO.update(this.selectedProduct.id, {
                     cantidad: nuevoStock
                 });
 
@@ -221,7 +221,7 @@ export default {
                 movimiento.referencia = 'Reabastecimiento desde Kardex';
                 movimiento.create_at = new Date();
 
-                await movimientosDAO.getInstance().save(movimiento);
+                await movimientosDAO.save(movimiento);
 
                 this.$q.notify({ type: 'positive', message: 'Existencia agregada correctamente' });
                 this.showDialogStock = false;

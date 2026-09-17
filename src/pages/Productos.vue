@@ -1,12 +1,15 @@
 <template>
   <q-page :class="$q.dark.isActive ? 'bg-dark' : ''" class="q-pa-md" padding>
     <!-- Header Buttons -->
-    <div class="row q-mb-md q-gutter-sm">
-      <q-btn class="col-12 col-sm" color="primary" icon="add" label="Nuevo producto" @click="nuevoProducto" />
-      <q-btn class="col-12 col-sm-auto" color="positive" icon="file_download" label="Exportar CSV"
-        @click="exportarProductosCSV" :disable="data.length === 0" />
-      <q-btn class="col-12 col-sm-auto" color="info" icon="file_upload" label="Importar CSV"
-        @click="triggerImportCSV" />
+    <div class="q-mb-md">
+      <q-btn class="full-width q-mb-sm" color="primary" icon="add" label="Nuevo producto" unelevated
+        @click="nuevoProducto" style="border-radius: 12px; font-weight: 600;" />
+      <div class="row q-gutter-sm">
+        <q-btn class="col" color="positive" icon="file_download" label="Exportar CSV" unelevated
+          @click="exportarProductosCSV" :disable="data.length === 0" style="border-radius: 10px;" dense />
+        <q-btn class="col" color="secondary" icon="file_upload" label="Importar CSV" unelevated
+          @click="triggerImportCSV" style="border-radius: 10px;" dense />
+      </div>
     </div>
 
     <!-- Hidden Input for CSV -->
@@ -46,7 +49,7 @@
             </div>
           </q-td>
           <q-td key="costo" :props="props" class="text-right">
-            {{ m_formatMoney(props.row.costo) }}
+            {{ $formatMoney(props.row.costo) }}
           </q-td>
           <q-td key="cantidad" :props="props" class="text-center">
             <q-chip :color="(props.row.cantidad || 0) < 5 ? 'negative' : 'positive'" text-color="white" dense>
@@ -54,7 +57,7 @@
             </q-chip>
           </q-td>
           <q-td key="precio_venta" :props="props" class="text-right text-weight-bold text-primary">
-            {{ m_formatMoney(calcularPrecioVenta(props.row.costo, props.row.porcentaje_ganancia, props.row.porcentaje_iva)) }}
+            {{ $formatMoney(calcularPrecioVenta(props.row.costo, props.row.porcentaje_ganancia, props.row.porcentaje_iva)) }}
           </q-td>
           <q-td key="acciones" :props="props" class="text-center">
             <q-btn flat round color="primary" icon="edit" @click="editarProducto(props.row)" />
@@ -84,7 +87,7 @@
               <div class="row justify-between">
                 <div>
                   <div class="text-caption text-grey">Precio de Venta</div>
-                  <div class="text-h6 text-primary">{{ m_formatMoney(calcularPrecioVenta(props.row.costo, props.row.porcentaje_ganancia, props.row.porcentaje_iva)) }}</div>
+                  <div class="text-h6 text-primary">{{ $formatMoney(calcularPrecioVenta(props.row.costo, props.row.porcentaje_ganancia, props.row.porcentaje_iva)) }}</div>
                 </div>
                 <div class="text-right">
                   <q-btn flat round color="primary" icon="edit" @click="editarProducto(props.row)" />
@@ -104,7 +107,7 @@
       :is-edit="is_editing" 
       :initial-data="selected_producto" 
       :categorias="categoriasOptions"
-      :valor-dolar="m_valor_dolar"
+      :valor-dolar="$valor_dolar"
       @save="onSaveProducto"
       @manage-categories="m_gestionar_categorias = true"
     />
@@ -183,11 +186,11 @@ export default {
   async mounted() {
     await this.loadCategorias();
     await this.get();
-    this.m_getDolar();
+    this.$getDolar();
   },
   methods: {
     async loadCategorias() {
-      this.categoriasOptions = await categoriasDAO.getInstance().get();
+      this.categoriasOptions = await categoriasDAO.get();
     },
     onCategoriasUpdated(newCats) {
       this.categoriasOptions = newCats;
@@ -199,7 +202,7 @@ export default {
     async get() {
       this.$q.loading.show();
       try {
-        this.data_original = await productosDAO.getInstance().get();
+        this.data_original = await productosDAO.get();
         this.aplicarFiltros();
       } catch (e) {
         console.error(e);
@@ -235,15 +238,15 @@ export default {
       this.$q.loading.show();
       try {
         if (this.is_editing) {
-          await productosDAO.getInstance().update(formData.id, formData);
+          await productosDAO.update(formData.id, formData);
           // Registrar movimiento de ajuste si cambió cantidad
           const old = this.data_original.find(p => p.id === formData.id);
           if (old && old.cantidad !== formData.cantidad) {
             await this.registrarMovimiento(formData.id, 'AJUSTE', formData.cantidad - old.cantidad, 'Edición de producto');
           }
         } else {
-          formData.create_at = this.m_fechaCreacion;
-          const id = await productosDAO.getInstance().save(formData);
+          formData.create_at = this.$getFechaCreacion();
+          const id = await productosDAO.save(formData);
           await this.registrarMovimiento(id, 'ENTRADA', formData.cantidad, 'Inventario Inicial');
         }
         this.m_form_dialog = false;
@@ -264,8 +267,8 @@ export default {
       m.cantidad = cantidad;
       m.fecha = Date.now();
       m.referencia = referencia;
-      m.create_at = this.m_fechaCreacion;
-      await movimientosDAO.getInstance().save(m);
+      m.create_at = this.$getFechaCreacion();
+      await movimientosDAO.save(m);
     },
     agregarCantidad(producto) {
       this.form_cantidad = { ...producto };
@@ -277,7 +280,7 @@ export default {
       this.$q.loading.show();
       try {
         const nuevaCantidad = parseFloat((this.form_cantidad.cantidad + this.cantidad_agregar).toFixed(2));
-        await productosDAO.getInstance().update(id, { cantidad: nuevaCantidad });
+        await productosDAO.update(id, { cantidad: nuevaCantidad });
         await this.registrarMovimiento(id, 'ENTRADA', this.cantidad_agregar, 'Agregado manualmente');
         this.m_cantidad_producto = false;
         await this.get();
@@ -295,7 +298,7 @@ export default {
         cancel: true,
         persistent: true
       }).onOk(async () => {
-        await productosDAO.getInstance().delete(id);
+        await productosDAO.delete(id);
         await this.get();
         this.$q.notify({ type: 'positive', message: 'Producto eliminado' });
       });
@@ -305,15 +308,77 @@ export default {
       const g = new Decimal(ganancia || 0).div(100);
       const i = new Decimal(iva || 0).div(100);
       const precioBase = c.mul(new Decimal(1).plus(g));
-      return precioBase.mul(new Decimal(1).plus(i)).mul(this.m_valor_dolar || 0).toNumber();
+      return precioBase.mul(new Decimal(1).plus(i)).mul(this.$valor_dolar || 0).toNumber();
     },
     triggerImportCSV() { this.$refs.fileInput.click(); },
     importarProductosCSV(event) {
-      // (Misma lógica de importación anterior, omitida aquí para brevedad pero debe mantenerse)
-      // Sugerencia: Mover la lógica de CSV a un Service dedicado
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const text = e.target.result;
+        const rows = text.split(/\r?\n/);
+        this.$q.loading.show({ message: 'Importando productos...' });
+        try {
+          for (let i = 1; i < rows.length; i++) {
+            const row = rows[i].trim();
+            if (!row) continue;
+            const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
+            if (cols.length >= 5) {
+              const nombre = cols[0];
+              const costo = parseFloat(cols[1]) || 0;
+              const cantidad = parseFloat(cols[2]) || 0;
+              const porcentaje_ganancia = parseFloat(cols[3]) || 0;
+              const porcentaje_iva = parseFloat(cols[4]) || 0;
+              const codigo_barras = cols[5] || '';
+              if (nombre) {
+                const form = {
+                   nombre, costo, cantidad, porcentaje_ganancia, porcentaje_iva, codigo_barras,
+                   categoria_id: null, create_at: this.$getFechaCreacion()
+                };
+                const existe = await productosDAO.getNombre(nombre);
+                if (existe) {
+                  await productosDAO.update(existe.id, { costo, cantidad: existe.cantidad + cantidad });
+                } else {
+                  await productosDAO.save(form);
+                }
+              }
+            }
+          }
+          await this.get();
+          this.$q.notify({ type: 'positive', message: 'Productos importados' });
+        } catch(err) {
+          console.error(err);
+          this.$q.notify({ type: 'negative', message: 'Error al importar CSV' });
+        }
+        this.$q.loading.hide();
+        this.$refs.fileInput.value = '';
+      };
+      reader.readAsText(file);
     },
     exportarProductosCSV() {
-      // (Misma lógica de exportación anterior)
+      const csvRows = [];
+      const headers = ['Nombre', 'Costo', 'Cantidad', 'Ganancia (%)', 'IVA (%)', 'Código de Barras'];
+      csvRows.push(headers.join(','));
+      this.data_original.forEach(p => {
+        const row = [
+          `"${(p.nombre || '').replace(/"/g, '""')}"`,
+          p.costo || 0,
+          p.cantidad || 0,
+          p.porcentaje_ganancia || 0,
+          p.porcentaje_iva || 0,
+          `"${p.codigo_barras || ''}"`
+        ];
+        csvRows.push(row.join(','));
+      });
+      const csvContent = "data:text/csv;charset=utf-8," + csvRows.join('\n');
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `productos_bodeguita_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
   }
 }

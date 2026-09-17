@@ -42,9 +42,9 @@
     <q-card class="rounded-card bg-primary text-white shadow-2 q-mb-md">
       <q-card-section class="row items-center justify-between">
         <div>
-          <div class="text-subtitle2 text-indigo-2">Total Ventas</div>
-          <div class="text-h5 text-indigo-2 text-weight-bold">
-            Bs {{ m_formatMoney(total) }}
+          <div class="text-subtitle2 text-green-1">Total Ventas</div>
+          <div class="text-h5 text-white text-weight-bold">
+            Bs {{ $formatMoney(total) }}
           </div>
         </div>
         <q-btn round color="white" text-color="green" icon="share" v-if="total > 0" type="a" :href="url_whatsapp"
@@ -60,14 +60,14 @@
           <q-card class="rounded-card shadow-1">
             <q-item class="q-py-md">
               <q-item-section avatar>
-                <q-avatar color="indigo-1" text-color="primary">
+                <q-avatar color="green-1" text-color="primary">
                   {{ venta.id }}
                 </q-avatar>
               </q-item-section>
 
               <q-item-section>
-                <q-item-label class="text-weight-bold text-dark">
-                  Bs {{ m_formatMoney(venta.total) }}
+                <q-item-label class="text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
+                  Bs {{ $formatMoney(venta.total) }}
                 </q-item-label>
                 <q-item-label caption lines="1">
                   <q-icon name="schedule" size="xs" /> {{ venta.create_at }}
@@ -110,10 +110,10 @@
 
               <q-item-section side class="text-right">
                 <q-item-label class="text-primary text-weight-bold">
-                  Bs {{ m_formatMoney(producto.valor_bs || 0) }}
+                  Bs {{ $formatMoney(producto.valor_bs || 0) }}
                 </q-item-label>
                 <q-item-label caption class="text-positive text-weight-bold">
-                  Ganancia: Bs {{ m_formatMoney((producto.valor_bs || 0) - (producto.costo_total_bs || 0)) }}
+                  Ganancia: Bs {{ $formatMoney((producto.valor_bs || 0) - (producto.costo_total_bs || 0)) }}
                 </q-item-label>
               </q-item-section>
             </q-item>
@@ -124,10 +124,10 @@
               </q-item-section>
               <q-item-section side class="text-right">
                 <q-item-label class="text-h6 text-primary text-weight-bold">
-                  Bs {{ m_formatMoney(totalVenta) }}
+                  Bs {{ $formatMoney(totalVenta) }}
                 </q-item-label>
                 <q-item-label caption class="text-positive text-weight-bold">
-                  Ganancia Total: Bs {{ m_formatMoney(totalGanancia) }}
+                  Ganancia Total: Bs {{ $formatMoney(totalGanancia) }}
                 </q-item-label>
               </q-item-section>
             </q-item>
@@ -183,16 +183,13 @@ export default {
       return venta - costo;
     },
     async getVentas() {
-      await ventasDAO
-        .getInstance()
-        .get(this.inicio, this.fin)
-        .then(result => (this.ventas = result));
+      this.ventas = await ventasDAO.get(this.inicio, this.fin);
       let sum = 0;
       for (let i = 0; i < this.ventas.length; i++) {
         sum += this.ventas[i].total;
       }
       this.total = sum;
-      const monto_convertido = this.m_formatMoney(this.total);
+      const monto_convertido = this.$formatMoney(this.total);
       const mensaje = `El total del sus ventas es de *Bs ${monto_convertido}*`
       const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(mensaje)}`
       this.url_whatsapp = url;
@@ -209,7 +206,6 @@ export default {
         .onOk(() => {
           this.$q.loading.show();
           ventasDAO
-            .getInstance()
             .delete(id)
             .then(async () => {
               await this.getVentas(); // Refresh list

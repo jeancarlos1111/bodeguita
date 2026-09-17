@@ -171,26 +171,26 @@ export default {
             this.loading = true;
             try {
                 // Business Data
-                const datos = await configuracionDAO.getInstance().get('datos_negocio');
+                const datos = await configuracionDAO.get('datos_negocio');
                 if (datos) {
                     this.negocio = { ...datos };
                 }
 
                 // Sequence
-                const seq = await configuracionDAO.getInstance().get('secuencia_factura');
+                const seq = await configuracionDAO.get('secuencia_factura');
                 if (seq) this.secuencia = seq;
 
-                const locked = await configuracionDAO.getInstance().get('secuencia_bloqueada');
+                const locked = await configuracionDAO.get('secuencia_bloqueada');
                 this.secuenciaBloqueada = !!locked;
 
                 // Tributos (Taxes)
-                const taxes = await configuracionDAO.getInstance().get('tributos');
+                const taxes = await configuracionDAO.get('tributos');
                 if (taxes) {
                     this.tributos = { ...taxes };
                 }
 
                 // Recomendaciones
-                const sug = await configuracionDAO.getInstance().get('sugerencias_activas');
+                const sug = await configuracionDAO.get('sugerencias_activas');
                 if (sug !== null) {
                     this.sugerencias_activas = sug;
                 }
@@ -204,7 +204,7 @@ export default {
         async saveBusinessData() {
             this.loading = true;
             try {
-                await configuracionDAO.getInstance().save('datos_negocio', this.negocio);
+                await configuracionDAO.save('datos_negocio', this.negocio);
                 this.$q.notify({ type: 'positive', message: 'Datos del negocio guardados' });
             } catch (e) {
                 this.$q.notify({ type: 'negative', message: 'Error guardando datos' });
@@ -222,8 +222,8 @@ export default {
             }).onOk(async () => {
                 this.loading = true;
                 try {
-                    await configuracionDAO.getInstance().save('secuencia_factura', Number(this.secuencia));
-                    await configuracionDAO.getInstance().save('secuencia_bloqueada', true);
+                    await configuracionDAO.save('secuencia_factura', Number(this.secuencia));
+                    await configuracionDAO.save('secuencia_bloqueada', true);
                     this.secuenciaBloqueada = true;
                     this.$q.notify({ type: 'positive', message: 'Secuencia establecida correctamente' });
                 } catch (e) {
@@ -235,7 +235,7 @@ export default {
         },
         async saveTributos() {
             try {
-                await configuracionDAO.getInstance().save('tributos', this.tributos);
+                await configuracionDAO.save('tributos', this.tributos);
                 // Silent save or small notification
                 this.$q.notify({
                     type: 'positive',
@@ -249,7 +249,7 @@ export default {
         },
         async saveSugerencias() {
             try {
-                await configuracionDAO.getInstance().save('sugerencias_activas', this.sugerencias_activas);
+                await configuracionDAO.save('sugerencias_activas', this.sugerencias_activas);
                 this.$q.notify({
                     type: 'positive',
                     message: 'Configuración de sugerencias actualizada',

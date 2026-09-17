@@ -2,10 +2,7 @@ import { movimientosDAO } from '../db/movimientosDAO';
 import { productosDAO } from '../db/productosDAO';
 import { date } from 'quasar';
 
-export class KardexService {
-    static getInstance() {
-        return new KardexService();
-    }
+export const KardexService = {
 
     /**
      * Genera sugerencias de reabastecimiento para todos los productos.
@@ -19,8 +16,8 @@ export class KardexService {
 
         // 1. Obtener todos los productos y TODAS las salidas del periodo en solo 2 queries
         const [productos, todasLasSalidas] = await Promise.all([
-            productosDAO.getInstance().get(),
-            movimientosDAO.getInstance().getSalidasPorFecha(inicio, fin)
+            productosDAO.get(),
+            movimientosDAO.getSalidasPorFecha(inicio, fin)
         ]);
 
         // 2. Agrupar salidas por producto_id en memoria (O(n))
@@ -70,7 +67,7 @@ export class KardexService {
 
         // Ordenar por prioridad (menor días restantes primero)
         return sugerencias.sort((a, b) => a.diasRestantes - b.diasRestantes);
-    }
+    },
 
     /**
      * Obtiene estadísticas rápidas para el dashboard
@@ -86,4 +83,4 @@ export class KardexService {
             topSugerencias: sugerencias.slice(0, 5) // Top 5 más urgentes
         };
     }
-}
+};

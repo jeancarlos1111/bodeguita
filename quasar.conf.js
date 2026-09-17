@@ -8,7 +8,7 @@
 
 const path = require('path')
 
-module.exports = function (/* ctx */) {
+module.exports = function (ctx) {
   return {
     // https://v1.quasar.dev/quasar-cli/supporting-ts
     supportTS: false,
@@ -47,7 +47,7 @@ module.exports = function (/* ctx */) {
     // Full list of options: https://v1.quasar.dev/quasar-cli/quasar-conf-js#Property%3A-build
     build: {
       vueRouterMode: 'history', // available values: 'hash', 'history'
-      publicPath: '/bodeguita/', // Ajustado para GitHub Pages (cambiar según nombre del repo)
+      publicPath: ctx.prod ? '/bodeguita/' : '/', // Ajustado para GitHub Pages (cambiar según nombre del repo)
       // transpile: false,
 
       // Add dependencies for transpiling with Babel (Array of string/regex)
@@ -137,8 +137,10 @@ module.exports = function (/* ctx */) {
         description: `Aplicación para la administración de una bodega`,
         display: 'standalone',
         orientation: 'portrait',
-        background_color: '#ffffff',
-        theme_color: '#027be3',
+        start_url: '.',
+        scope: '.',
+        background_color: '#F8FAFC',
+        theme_color: '#0D684F',
         icons: [
           {
             src: 'icons/icon-128x128.png',
@@ -148,7 +150,8 @@ module.exports = function (/* ctx */) {
           {
             src: 'icons/icon-192x192.png',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any maskable'
           },
           {
             src: 'icons/icon-256x256.png',
@@ -163,7 +166,8 @@ module.exports = function (/* ctx */) {
           {
             src: 'icons/icon-512x512.png',
             sizes: '512x512',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any maskable'
           }
         ]
       }

@@ -1,33 +1,40 @@
 // app global css in SCSS form
 
 :root {
-  --q-color-primary: #4F46E5; /* Indigo 600 */
-  --q-color-secondary: #14B8A6; /* Teal 500 */
-  --q-color-accent: #8B5CF6; /* Violet 500 */
-  --q-color-dark: #1F2937; /* Gray 800 */
+  --q-color-primary: #0D684F; /* Emerald Forest 700 */
+  --q-color-primary-light: #E8F5F1;
+  --q-color-primary-dark: #094F3C;
+  --q-color-secondary: #10B981; /* Emerald 500 */
+  --q-color-accent: #047857; /* Emerald 700 */
+  --q-color-dark: #111827; /* Gray 900 */
   --q-color-positive: #10B981; /* Emerald 500 */
   --q-color-negative: #EF4444; /* Red 500 */
-  --q-color-info: #3B82F6; /* Blue 500 */
+  --q-color-info: #0EA5E9; /* Sky 500 */
   --q-color-warning: #F59E0B; /* Amber 500 */
   
-  --app-bg: #F3F4F6; /* Gray 100 */
+  --app-bg: #F8FAFC; /* Slate 50 */
   --app-card-bg: #FFFFFF;
-  --app-text-main: #111827;
-  --app-text-sub: #6B7280;
+  --app-card-border: #E2E8F0;
+  --app-text-main: #0F172A; /* Slate 900 */
+  --app-text-sub: #64748B; /* Slate 500 */
+  --app-pill-inactive: #F1F5F9;
 }
 
 body {
   background-color: var(--app-bg);
   color: var(--app-text-main);
-  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-  transition: background-color 0.3s, color 0.3s;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  transition: background-color 0.25s, color 0.25s;
+  -webkit-font-smoothing: antialiased;
 }
 
 body.body--dark {
-  --app-bg: #121212;
-  --app-card-bg: #1E1E1E;
-  --app-text-main: #F3F4F6;
-  --app-text-sub: #9CA3AF;
+  --app-bg: #0F172A;
+  --app-card-bg: #1E293B;
+  --app-card-border: #334155;
+  --app-text-main: #F8FAFC;
+  --app-text-sub: #94A3B8;
+  --app-pill-inactive: #334155;
   
   background-color: var(--app-bg);
   color: var(--app-text-main);
@@ -37,38 +44,122 @@ body.body--dark {
   }
 }
 
+// Modern Clean Cards & Containers
+.rounded-card {
+  border-radius: 18px;
+  background: var(--app-card-bg);
+  border: 1px solid var(--app-card-border);
+}
+
+.modern-card {
+  border-radius: 16px;
+  background: var(--app-card-bg);
+  border: 1px solid var(--app-card-border);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.modern-card-interactive:active {
+  transform: scale(0.985);
+}
+
+// Segmented Pills
+.pill-btn {
+  border-radius: 9999px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  padding: 8px 18px;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.pill-btn-active {
+  background-color: #0D684F !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 2px 8px rgba(13, 104, 79, 0.25);
+}
+
+.pill-btn-inactive {
+  background-color: var(--app-pill-inactive) !important;
+  color: var(--app-text-main) !important;
+}
+
+// Soft Pill Filter
+.filter-pill {
+  border-radius: 9999px;
+  padding: 6px 14px;
+  font-weight: 500;
+  font-size: 0.85rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.filter-pill-active {
+  background-color: #0D684F;
+  color: #ffffff;
+  border-color: #0D684F;
+}
+
+.filter-pill-inactive {
+  background-color: var(--app-card-bg);
+  color: var(--app-text-sub);
+  border-color: var(--app-card-border);
+}
+
 // Utilities
 .glass-effect {
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.glass-dark-effect {
+  background: rgba(17, 24, 39, 0.7);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .soft-shadow {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 8px -2px rgba(15, 23, 42, 0.08), 0 1px 4px -1px rgba(15, 23, 42, 0.04);
 }
 
-.rounded-card {
-  border-radius: 16px;
+.soft-shadow-lg {
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
 }
 
 .text-h1, .text-h2, .text-h3, .text-h4, .text-h5, .text-h6 {
-  color: var(--q-color-dark);
+  color: var(--app-text-main);
   font-weight: 600;
+  letter-spacing: -0.2px;
 }
 
-// Overrides for Quasar components to match the theme
+// Hide scrollbar but keep functionality
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+// Quasar Global Overrides
 .q-card {
   border-radius: 16px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
 }
 
 .q-btn {
-  border-radius: 8px;
-  font-weight: 500;
+  border-radius: 10px;
+  font-weight: 600;
   text-transform: none; // Modern look, no all-caps
-  letter-spacing: 0.5px;
+  letter-spacing: 0.2px;
+}
+
+.q-field--outlined .q-field__control {
+  border-radius: 12px;
 }
 
 .q-field--filled .q-field__control {
@@ -77,7 +168,7 @@ body.body--dark {
 
 body.body--light {
   .q-field--filled .q-field__control {
-    background: #fff;
+    background: #F1F5F9;
   }
 }
 

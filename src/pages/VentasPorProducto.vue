@@ -180,7 +180,6 @@ export default Vue.extend({
       try {
         // Obtener ventas del rango de fechas (igual que en Ventas.vue)
         await ventasDAO
-          .getInstance()
           .get(fechaInicio, fechaFin)
           .then(result => {
             this.ventas = result || [];

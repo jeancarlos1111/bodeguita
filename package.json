@@ -1,28 +1,26 @@
 {
   "name": "bodeguita",
-  "version": "2.3.2",
+  "version": "3.1.1",
   "description": "Aplicación para la administración de una bodega",
   "productName": "Bodeguita",
   "author": "Jean Zamora jeancarloscuatro1@gmail.com>",
   "private": true,
   "scripts": {
+    "dev": "NODE_OPTIONS=--openssl-legacy-provider quasar dev",
+    "build": "NODE_OPTIONS=--openssl-legacy-provider quasar build",
     "test": "echo \"No test specified\" && exit 0",
     "build:wasm": "cd src-wasm && wasm-pack build --target web && sed -i 's/import.meta.url/self.location.href/g' pkg/bodeguita_recommendations.js",
     "deploy:gh": "bash scripts/deploy-gh-pages.sh"
   },
-  "resolutions": {
-    "cheerio": "1.0.0-rc.12"
-  },
   "dependencies": {
     "@quasar/extras": "^1.17.0",
-    "axios": "^0.21.1",
+    "axios": "^1.7.2",
     "chart.js": "^3.9.1",
     "core-js": "^3.6.5",
     "decimal.js": "^10.6.0",
     "dexie": "^3.0.3",
     "html5-qrcode": "^2.3.8",
     "quasar": "^1.22.1",
-    "scrape-it": "^5.3.1",
     "v-money": "^0.8.1",
     "vue-i18n": "^8.0.0"
   },

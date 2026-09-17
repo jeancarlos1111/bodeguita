@@ -4,8 +4,8 @@
             <div class="text-h6 text-primary">Cuentas por Cobrar (Fiado)</div>
             <q-space />
             <div class="text-subtitle1 text-grey-8">
-                Total Pendiente: <strong>Bs {{ m_formatMoney(totalPendiente) }}</strong>
-                <span v-if="m_valor_dolar" class="text-caption q-ml-sm">($ {{ m_formatMoneyUSD(totalPendiente / m_valor_dolar)
+                Total Pendiente: <strong>Bs {{ $formatMoney(totalPendiente) }}</strong>
+                <span v-if="$valor_dolar" class="text-caption q-ml-sm">($ {{ $formatMoneyUSD(totalPendiente / $valor_dolar)
                 }})</span>
             </div>
         </div>
@@ -23,30 +23,30 @@
 
                 <template v-slot:body-cell-fecha="props">
                     <q-td :props="props">
-                        {{ m_formatDateTime(props.row.create_at) }}
+                        {{ $formatDateTime(props.row.create_at) }}
                     </q-td>
                 </template>
 
                 <template v-slot:body-cell-total="props">
                     <q-td :props="props" class="text-weight-bold">
-                        Bs {{ m_formatMoney(props.row.total) }}
-                        <div class="text-caption text-grey" v-if="m_valor_dolar">
-                            $ {{ m_formatMoneyUSD(props.row.total / m_valor_dolar) }}
+                        Bs {{ $formatMoney(props.row.total) }}
+                        <div class="text-caption text-grey" v-if="$valor_dolar">
+                            $ {{ $formatMoneyUSD(props.row.total / $valor_dolar) }}
                         </div>
                     </q-td>
                 </template>
 
                 <template v-slot:body-cell-pagado="props">
                     <q-td :props="props">
-                        Bs {{ m_formatMoney(props.row.monto_pagado) }}
+                        Bs {{ $formatMoney(props.row.monto_pagado) }}
                     </q-td>
                 </template>
 
                 <template v-slot:body-cell-restante="props">
                     <q-td :props="props" class="text-weight-bold text-negative">
-                        Bs {{ m_formatMoney(props.row.restante) }}
-                        <div class="text-caption text-grey" v-if="m_valor_dolar">
-                            $ {{ m_formatMoneyUSD(props.row.restante / m_valor_dolar) }}
+                        Bs {{ $formatMoney(props.row.restante) }}
+                        <div class="text-caption text-grey" v-if="$valor_dolar">
+                            $ {{ $formatMoneyUSD(props.row.restante / $valor_dolar) }}
                         </div>
                     </q-td>
                 </template>
@@ -69,7 +69,7 @@
                 <q-card-section>
                     <div class="text-h6">Detalle de Venta #{{ selectedVenta.numero_factura }}</div>
                     <div class="text-subtitle2">{{ selectedVenta.cliente_nombre }} - {{
-                        m_formatDateTime(selectedVenta.create_at) }}
+                        $formatDateTime(selectedVenta.create_at) }}
                     </div>
                 </q-card-section>
 
@@ -81,7 +81,7 @@
                                 <q-item-label caption>Cant: {{ prod.cantidad }}</q-item-label>
                             </q-item-section>
                             <q-item-section side>
-                                Bs {{ m_formatMoney(selectedVenta.productos[index].valor_bs) }}
+                                Bs {{ $formatMoney(selectedVenta.productos[index].valor_bs) }}
                             </q-item-section>
                         </q-item>
                     </q-list>
@@ -103,7 +103,7 @@
 
                 <q-card-section class="q-pt-none">
                     <div class="text-subtitle1 q-mb-sm">
-                        Deuda Restante: <span class="text-negative text-weight-bold">Bs {{ m_formatMoney(paymentForm.max)
+                        Deuda Restante: <span class="text-negative text-weight-bold">Bs {{ $formatMoney(paymentForm.max)
                             }}</span>
                     </div>
 
@@ -159,7 +159,7 @@ export default {
         }
     },
     mounted() {
-        this.m_getDolar();
+        this.$getDolar();
         this.getVentasPendientes();
     },
     methods: {

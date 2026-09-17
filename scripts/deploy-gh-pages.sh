@@ -73,10 +73,12 @@ if [[ -f "$QUASAR_CONF" ]]; then
       # GNU sed (Linux)
       sed -i "s|publicPath: ['\"][^'\"]*['\"]|publicPath: '$PUBLIC_PATH'|" "$QUASAR_CONF"
       sed -i "s|publicPath: \`[^\`]*\`|publicPath: \`$PUBLIC_PATH\`|" "$QUASAR_CONF"
+      sed -i "s|publicPath: ctx.prod ? ['\"][^'\"]*['\"] : ['\"][^'\"]*['\"]|publicPath: ctx.prod ? '$PUBLIC_PATH' : '/'|" "$QUASAR_CONF"
     else
       # BSD sed (macOS)
       sed -i '' "s|publicPath: ['\"][^'\"]*['\"]|publicPath: '$PUBLIC_PATH'|" "$QUASAR_CONF"
       sed -i '' "s|publicPath: \`[^\`]*\`|publicPath: \`$PUBLIC_PATH\`|" "$QUASAR_CONF"
+      sed -i '' "s|publicPath: ctx.prod ? ['\"][^'\"]*['\"] : ['\"][^'\"]*['\"]|publicPath: ctx.prod ? '$PUBLIC_PATH' : '/'|" "$QUASAR_CONF"
     fi
 
     echo "[deploy] publicPath actualizado a: $PUBLIC_PATH"
@@ -101,16 +103,34 @@ if [ "$NODE_VERSION" -gt 16 ]; then
     source "$HOME/.nvm/nvm.sh"
     if nvm list 16 >/dev/null 2>&1 || nvm install 16 >/dev/null 2>&1; then
       nvm use 16
+      unset NODE_OPTIONS || true
       echo "[deploy] Usando Node $(node --version)"
     fi
   fi
+fi
 
-  # Si aún no tenemos Node 16, intentar con --openssl-legacy-provider
-  NODE_VERSION=$(node --version 2>/dev/null | cut -d'v' -f2 | cut -d'.' -f1 || echo "0")
+NODE_VERSION=$(node --version 2>/dev/null | cut -d'v' -f2 | cut -d'.' -f1 || echo "0")
+if [ "$NODE_VERSION" -gt 16 ]; then
+  export NODE_OPTIONS="--openssl-legacy-provider"
+else
+  unset NODE_OPTIONS || true
+fi
+
+# Si usamos Node 16 o tenemos el binario local de Quasar
+if [ -f "$ROOT_DIR/node_modules/.bin/quasar" ]; then
+  echo "[deploy] Construyendo con Quasar local..."
+  "$ROOT_DIR/node_modules/.bin/quasar" build -m pwa && BUILD_OK=1 || true
+elif [ -f "$ROOT_DIR/node_modules/@quasar/app/bin/quasar" ]; then
+  echo "[deploy] Construyendo con @quasar/app local..."
+  node "$ROOT_DIR/node_modules/@quasar/app/bin/quasar" build -m pwa && BUILD_OK=1 || true
+fi
+
+# Si aún no construyó y Node > 16, intentar con --openssl-legacy-provider
+if [ "$BUILD_OK" -ne 1 ]; then
   if [ "$NODE_VERSION" -gt 16 ]; then
     echo "[deploy] Intentando construir con --openssl-legacy-provider..."
-    if [ -f "$ROOT_DIR/node_modules/@quasar/app/bin/quasar.js" ]; then
-      node --openssl-legacy-provider "$ROOT_DIR/node_modules/@quasar/app/bin/quasar.js" build -m pwa && BUILD_OK=1 || true
+    if [ -f "$ROOT_DIR/node_modules/@quasar/app/bin/quasar" ]; then
+      node --openssl-legacy-provider "$ROOT_DIR/node_modules/@quasar/app/bin/quasar" build -m pwa && BUILD_OK=1 || true
     fi
   fi
 fi

@@ -133,36 +133,63 @@ bodeguita/
 │   ├── assets/              # Assets estáticos (imágenes, etc.)
 │   ├── boot/                # Archivos de inicialización
 │   │   ├── axios.js        # Configuración de Axios
+│   │   ├── globals.js      # Variables y funciones globales
 │   │   └── i18n.js         # Configuración de i18n
 │   ├── components/          # Componentes reutilizables
-│   │   └── EssentialLink.vue
+│   │   ├── BarcodeScanner.vue
+│   │   ├── CartList.vue
+│   │   ├── CategoriasDialog.vue
+│   │   ├── EssentialLink.vue
+│   │   ├── FiadoDialog.vue
+│   │   ├── PaymentDialog.vue
+│   │   ├── ProductoFormDialog.vue
+│   │   └── TicketVenta.vue
 │   ├── css/                # Estilos globales
 │   │   ├── app.scss
 │   │   └── quasar.variables.scss
-│   ├── db/                 # Capa de acceso a datos
-│   │   ├── db.js          # Configuración de Dexie/IndexedDB
-│   │   ├── productosDAO.js # DAO de productos
-│   │   ├── valor_dolarDAO.js # DAO de valor del dólar
-│   │   └── ventasDAO.js    # DAO de ventas
+│   ├── db/                 # Capa de acceso a datos (IndexedDB/Dexie)
+│   │   ├── categoriasDAO.js
+│   │   ├── clientesDAO.js
+│   │   ├── configuracionDAO.js
+│   │   ├── db.js          # Configuración de Dexie
+│   │   ├── movimientosDAO.js
+│   │   ├── productosDAO.js
+│   │   ├── valor_dolarDAO.js
+│   │   └── ventasDAO.js
 │   ├── i18n/              # Traducciones
 │   │   ├── index.js
 │   │   └── en-us/
 │   ├── layouts/           # Layouts de la aplicación
 │   │   └── MainLayout.vue
 │   ├── models/            # Modelos de datos
+│   │   ├── Clientes.js
+│   │   ├── Movimientos.js
 │   │   ├── Productos.js
 │   │   ├── ValorDolar.js
 │   │   └── Ventas.js
 │   ├── pages/             # Páginas/Vistas
+│   │   ├── CierreCaja.vue
+│   │   ├── Configuracion.vue
+│   │   ├── CuentasPorCobrar.vue
+│   │   ├── Dashboard.vue
+│   │   ├── Error404.vue
 │   │   ├── Index.vue      # Página principal (Ventas)
+│   │   ├── Kardex.vue
+│   │   ├── LibroVentas.vue
 │   │   ├── Productos.vue  # Gestión de productos
 │   │   ├── ValorDolar.vue # Gestión del valor del dólar
-│   │   ├── Ventas.vue     # Reporte de ventas
-│   │   └── Error404.vue
+│   │   ├── VentasPorProducto.vue
+│   │   └── Ventas.vue     # Reporte de ventas
 │   ├── router/            # Configuración de rutas
 │   │   ├── index.js
 │   │   └── routes.js
-│   ├── store/             # Vuex store (opcional)
+│   ├── services/          # Servicios de lógica de negocio
+│   │   ├── KardexService.js
+│   │   └── RecommendationService.js
+│   ├── utils/             # Funciones utilitarias
+│   │   └── format.js
+│   ├── workers/           # Web Workers
+│   │   └── recommendation.worker.js
 │   ├── App.vue            # Componente raíz
 │   └── index.template.html # Template HTML
 │
@@ -738,5 +765,5 @@ Este proyecto es privado.
 
 ---
 
-**Versión**: 2.1.5
-**Última actualización**: 2025
+**Versión**: 3.1.1
+**Última actualización**: 2026

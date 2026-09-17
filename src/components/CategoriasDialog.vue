@@ -61,13 +61,13 @@ export default {
   },
   methods: {
     async loadCategorias() {
-      this.categorias = await categoriasDAO.getInstance().get();
+      this.categorias = await categoriasDAO.get();
       this.$emit('updated', this.categorias);
     },
     async guardarCategoria() {
       if (!this.nueva_categoria.trim()) return;
       try {
-        await categoriasDAO.getInstance().save({ nombre: this.nueva_categoria.toUpperCase() });
+        await categoriasDAO.save({ nombre: this.nueva_categoria.toUpperCase() });
         this.nueva_categoria = '';
         await this.loadCategorias();
         this.$q.notify({ type: 'positive', message: 'Categoría guardada' });
@@ -82,7 +82,7 @@ export default {
         cancel: true,
         persistent: true
       }).onOk(async () => {
-        await categoriasDAO.getInstance().delete(id);
+        await categoriasDAO.delete(id);
         await this.loadCategorias();
       });
     }
